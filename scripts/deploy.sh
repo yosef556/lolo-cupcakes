@@ -5,6 +5,10 @@ echo "========================================================"
 echo "🧁 Lolo Cupcakes - 24/7 Free Cloud Deployment Helper"
 echo "========================================================"
 
+# Automatically navigate to project root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
 # Check if git remote origin is set
 if ! git remote get-url origin > /dev/null 2>&1; then
     echo "Adding remote origin for user yosef556..."
