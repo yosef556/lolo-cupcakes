@@ -6505,6 +6505,35 @@ export default function AdminDashboardPage() {
 
                 <div className="pt-2 border-t border-rose-50">
                   <label className="font-bold text-slate-700 block mb-1">
+                    السعر المبدئي الأساسي للتورتة (ج.م) 💰:
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-1.5">
+                    السعر الافتراضي الذي تبدأ منه حاسبة أسعار التورتة المخصصة بالورشة (مثال: 650 ج.م)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      step="10"
+                      placeholder="650"
+                      value={editingSettings["custom_cake_base_price"] ?? (settings.find((s) => s.key === "custom_cake_base_price")?.value || "650")}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_base_price: e.target.value })}
+                      className="w-36 px-3.5 py-2 rounded-xl border border-rose-200 font-bold text-xs"
+                    />
+                    <span className="text-xs font-bold text-slate-600">ج.م</span>
+                    <button
+                      type="button"
+                      disabled={savingSettingKey === "custom_cake_base_price"}
+                      onClick={() => handleSaveSetting("custom_cake_base_price")}
+                      className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                    >
+                      {savingSettingKey === "custom_cake_base_price" ? "جاري..." : "حفظ السعر"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-rose-50">
+                  <label className="font-bold text-slate-700 block mb-1">
                     جملة وملاحظة السعر التقديري للتورتة المخصصة 🎂:
                   </label>
                   <p className="text-[11px] text-slate-400 mb-1.5">

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 export default function CustomCakeRequestPage() {
-  const { cleanWhatsAppNumber, customCakeFlavors, customCakePriceNote } = useStoreSettings();
+  const { cleanWhatsAppNumber, customCakeFlavors, customCakePriceNote, customCakeBasePrice } = useStoreSettings();
 
   const availableFlavors = useMemo(() => {
     if (Array.isArray(customCakeFlavors) && customCakeFlavors.length > 0) {
@@ -152,14 +152,14 @@ export default function CustomCakeRequestPage() {
   }, [flavorPreference, customFlavorText]);
 
   const estimatedPriceRange = useMemo(() => {
-    let baseMin = 650;
-    let baseMax = 900;
+    let baseMin = customCakeBasePrice && !isNaN(Number(customCakeBasePrice)) && Number(customCakeBasePrice) > 0 ? Number(customCakeBasePrice) : 650;
+    let baseMax = Math.round(baseMin * 1.38);
     if (selectedTiers === 2) {
-      baseMin = 1200;
-      baseMax = 1650;
+      baseMin = Math.round(baseMin * 1.85);
+      baseMax = Math.round(baseMin * 1.38);
     } else if (selectedTiers === 3) {
-      baseMin = 1950;
-      baseMax = 2900;
+      baseMin = Math.round(baseMin * 3.0);
+      baseMax = Math.round(baseMin * 1.48);
     }
     if (cakeShape === "HEART") {
       baseMin += 80;
@@ -174,7 +174,7 @@ export default function CustomCakeRequestPage() {
       baseMax += 180;
     }
     return { min: baseMin, max: baseMax };
-  }, [selectedTiers, cakeShape, hasMacarons, hasGoldLeaf]);
+  }, [customCakeBasePrice, selectedTiers, cakeShape, hasMacarons, hasGoldLeaf]);
 
   const handleCopyRef = () => {
     if (!createdRequest) return;

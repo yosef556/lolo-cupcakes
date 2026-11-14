@@ -129,6 +129,7 @@ export interface StoreSettingsContextValue {
   customCakeCtaPrimary: string;
   customCakeCtaSecondary: string;
   customCakePriceNote: string;
+  customCakeBasePrice: number;
   customCakeFlavors: string[];
   heroTasteHighlights: TasteHighlightDto[];
   refreshSettings: () => Promise<void>;
@@ -189,6 +190,7 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue>({
   customCakeCtaPrimary: "صمم واطلب تسعير تورتتك الخاصة 3D",
   customCakeCtaSecondary: "متابعة عرض سعر سابق",
   customCakePriceNote: "السعر التقديري المبدئي: 870 - 1230 ج.م * السعر النهائي يشمل التصميم المختار ويتم إرسال العرض المعتمد من مراجعة الشيف لولو كب كيك",
+  customCakeBasePrice: 650,
   customCakeFlavors: DEFAULT_CUSTOM_CAKE_FLAVORS,
   heroTasteHighlights: DEFAULT_TASTE_HIGHLIGHTS,
   refreshSettings: async () => {},
@@ -291,6 +293,7 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
     const customCakeCtaPrimary = settings["custom_cake_cta_primary"]?.trim() || "صمم واطلب تسعير تورتتك الخاصة 3D";
     const customCakeCtaSecondary = settings["custom_cake_cta_secondary"]?.trim() || "متابعة عرض سعر سابق";
     const customCakePriceNote = settings["custom_cake_price_note"]?.trim() || "السعر التقديري المبدئي: 870 - 1230 ج.م * السعر النهائي يشمل التصميم المختار ويتم إرسال العرض المعتمد من مراجعة الشيف لولو كب كيك";
+    const customCakeBasePrice = parseFloat(settings["custom_cake_base_price"] || "650") || 650;
 
     let customCakeFlavors = DEFAULT_CUSTOM_CAKE_FLAVORS;
     if (settings["custom_cake_flavors"]) {
@@ -346,6 +349,7 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
       customCakeCtaPrimary,
       customCakeCtaSecondary,
       customCakePriceNote,
+      customCakeBasePrice,
       customCakeFlavors,
       heroTasteHighlights,
       refreshSettings: fetchSettings,
