@@ -1,0 +1,10 @@
+backend/
+db_backup/
+scripts/
+*.sql
+*.tar.gz
+*.zip
+.git/
+.agents/
+target/
+uploads/
