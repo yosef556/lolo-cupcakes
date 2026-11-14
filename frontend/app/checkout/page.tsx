@@ -123,6 +123,22 @@ function CheckoutContent() {
         localStorage.setItem("user_gps_location", JSON.stringify(coordsObj));
         setGpsLoading(false);
 
+        // Auto-match delivery zone from GPS coordinates
+        let matchedZone: DeliveryZoneDto | undefined;
+        if (lng < 31.12) {
+          matchedZone = zones.find((z) => z.nameAr.includes("زايد") || z.nameAr.includes("اكتوبر"));
+        } else if (lat < 29.98 && lng >= 31.20 && lng <= 31.35) {
+          matchedZone = zones.find((z) => z.nameAr.includes("معادي"));
+        } else if (lat >= 30.08 && lng >= 31.20 && lng <= 31.32) {
+          matchedZone = zones.find((z) => z.nameAr.includes("شبرا"));
+        } else if (lng > 31.32) {
+          matchedZone = zones.find((z) => z.nameAr.includes("تجمع") || z.nameAr.includes("جديد") || z.nameAr.includes("نصر"));
+        }
+
+        if (matchedZone) {
+          setSelectedZoneId(matchedZone.id);
+        }
+
         // Reverse geocoding to auto-fill street address if empty
         try {
           const res = await fetch(
@@ -139,6 +155,15 @@ function CheckoutContent() {
               const detected = [road, suburb, city].filter(Boolean).join("، ");
               if (detected) {
                 setStreetAddress((prev) => prev ? prev : detected);
+              }
+
+              // Fallback match from geocoded address text if coordinate check didn't match
+              if (!matchedZone && zones.length > 0) {
+                const fullText = `${road} ${suburb} ${city}`.toLowerCase();
+                const found = zones.find((z) => fullText.includes(z.nameAr.replace(/[أإآ]/g, "ا").trim()));
+                if (found) {
+                  setSelectedZoneId(found.id);
+                }
               }
             }
           }
@@ -392,6 +417,26 @@ function CheckoutContent() {
         setSubmitError("يرجى اختيار منطقة التوصيل");
         return false;
       }
+
+      // Anti-fraud GPS vs Selected Zone cross check
+      const chosenZone = zones.find((z) => z.id === selectedZoneId);
+      if (chosenZone && gpsCoords.lng) {
+        const isWestGps = gpsCoords.lng < 31.12; // Sheikh Zayed / 6th of October
+        const isEastOrSouthGps = gpsCoords.lng > 31.22; // Maadi, Tagamoa, Nasr City
+        const isZayedZone = chosenZone.nameAr.includes("زايد") || chosenZone.nameAr.includes("اكتوبر");
+        const isMaadiZone = chosenZone.nameAr.includes("معادي");
+        const isEastZone = chosenZone.nameAr.includes("تجمع") || chosenZone.nameAr.includes("نصر") || chosenZone.nameAr.includes("جديد");
+
+        if (isWestGps && (isMaadiZone || isEastZone)) {
+          setSubmitError(`⚠️ تنبيه: موقع الـ GPS المكتشف لجهازك يقع في (الشيخ زايد / 6 أكتوبر)، بينما قمت باختيار منطقة (${chosenZone.nameAr}). يرجى اختيار المنطقة الحقيقية لموقعك.`);
+          return false;
+        }
+        if (isEastOrSouthGps && isZayedZone) {
+          setSubmitError(`⚠️ تنبيه: موقع الـ GPS المكتشف لجهازك يقع في القاهرة (${chosenZone.nameAr}) لا تتطابق معه. يرجى اختيار منطقتك الحقيقية.`);
+          return false;
+        }
+      }
+
       if (!streetAddress.trim()) {
         setSubmitError("يرجى إدخال اسم الشارع والعنوان بالتفصيل");
         return false;

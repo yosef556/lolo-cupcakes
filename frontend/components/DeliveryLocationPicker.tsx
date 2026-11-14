@@ -15,49 +15,15 @@ interface DeliveryLocationPickerProps {
   selectedZoneName?: string;
 }
 
-const CAIRO_NEIGHBORHOODS = [
-  { name: "المعادي (الفرع الرئيسي)", lat: 29.9602, lng: 31.2569, fee: 35, speed: "30-45 دقيقة" },
-  { name: "التجمع الخامس والقاهرة الجديدة", lat: 30.0074, lng: 31.4285, fee: 55, speed: "45-60 دقيقة" },
-  { name: "مصر الجديدة والنزهة", lat: 30.0911, lng: 31.3255, fee: 45, speed: "40-50 دقيقة" },
-  { name: "مدينة نصر", lat: 30.0566, lng: 31.3301, fee: 45, speed: "40-50 دقيقة" },
-  { name: "الزمالك وجاردن سيتي", lat: 30.0609, lng: 31.2197, fee: 45, speed: "35-45 دقيقة" },
-  { name: "الدقي والمهندسين", lat: 30.0384, lng: 31.2119, fee: 45, speed: "35-45 دقيقة" },
-  { name: "الشيخ زايد و 6 أكتوبر", lat: 30.0321, lng: 30.9841, fee: 65, speed: "60-75 دقيقة" },
-  { name: "المقطم والهضبة الوسطى", lat: 30.0125, lng: 31.2991, fee: 40, speed: "35-45 دقيقة" },
-];
-
 export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneName }: DeliveryLocationPickerProps) {
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<(typeof CAIRO_NEIGHBORHOODS)[0] | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number }>({
-    lat: CAIRO_NEIGHBORHOODS[0].lat,
-    lng: CAIRO_NEIGHBORHOODS[0].lng,
+    lat: 29.9602,
+    lng: 31.2569,
   });
   const [detectedAddress, setDetectedAddress] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
 
-  // Sync selectedZoneName if provided
-  React.useEffect(() => {
-    if (selectedZoneName) {
-      const match = CAIRO_NEIGHBORHOODS.find((n) => selectedZoneName.includes(n.name) || n.name.includes(selectedZoneName));
-      if (match) {
-        setSelectedNeighborhood(match);
-      }
-    }
-  }, [selectedZoneName]);
-
-  const handleSelectNeighborhood = (item: typeof CAIRO_NEIGHBORHOODS[0]) => {
-    setSelectedNeighborhood(item);
-    setCurrentCoords({ lat: item.lat, lng: item.lng });
-    setDetectedAddress(`${item.name}، القاهرة الكبرى`);
-    setLocationStatus(`تم تحديد الحي: ${item.name}`);
-    onLocationSelect({
-      neighborhood: item.name,
-      lat: item.lat,
-      lng: item.lng,
-      formattedAddress: `${item.name}، القاهرة الكبرى`,
-    });
-  };
 
   const handleGpsLocate = () => {
     if (!navigator.geolocation) {
@@ -203,41 +169,6 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
             </a>
           </div>
         )}
-      </div>
-
-      {/* Quick Neighborhood Picker */}
-      <div className="space-y-2">
-        <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block">
-          أو اختر منطقتك السكنية بالقاهرة الكبرى للتحديد السريع:
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {CAIRO_NEIGHBORHOODS.map((item) => {
-            const isSelected = selectedNeighborhood?.name === item.name;
-            return (
-              <button
-                key={item.name}
-                type="button"
-                onClick={() => handleSelectNeighborhood(item)}
-                className={`p-2.5 rounded-2xl border text-right transition-all flex flex-col justify-between ${
-                  isSelected
-                    ? "bg-rose-500 text-white border-rose-600 shadow-sm"
-                    : "bg-white dark:bg-slate-800 border-rose-200 dark:border-slate-700 hover:bg-rose-50/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <span className={`text-[10px] font-bold ${isSelected ? "text-rose-100" : "text-slate-500 dark:text-slate-400"}`}>
-                    {item.speed}
-                  </span>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                </div>
-                <span className="font-black text-xs line-clamp-1">{item.name}</span>
-                <span className={`text-[10px] mt-0.5 font-bold ${isSelected ? "text-rose-100" : "text-rose-600 dark:text-rose-400"}`}>
-                  توصيل: {item.fee} ج.م
-                </span>
-              </button>
-            );
-          })}
-        </div>
       </div>
     </div>
   );

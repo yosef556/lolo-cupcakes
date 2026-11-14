@@ -721,6 +721,8 @@ export interface CustomerAdminDto {
   email: string;
   phone: string;
   status: string;
+  customerTier?: "NORMAL" | "VIP" | "BLOCKED" | string;
+  loyaltyPoints?: number;
   isAdmin: boolean;
   avatarUrl?: string;
   address?: string;
@@ -732,6 +734,24 @@ export interface CustomerAdminDto {
 export async function getAdminCustomers(): Promise<CustomerAdminDto[]> {
   const res = await fetchApi<CustomerAdminDto[]>("/admin/customers");
   return res.data;
+}
+
+export async function updateCustomerAdmin(id: string, data: { loyaltyPoints?: number; customerTier?: string; status?: string }): Promise<CustomerAdminDto> {
+  const res = await fetch(`/api/v1/admin/customers/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "فشل تحديث العميل");
+  return json.data;
+}
+
+export async function getCustomerOrders(id: string): Promise<any[]> {
+  const res = await fetch(`/api/v1/admin/customers/${id}/orders`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "فشل جلب طلبات العميل");
+  return json.data;
 }
 
 export async function uploadImageFile(file: File): Promise<string> {

@@ -42,6 +42,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
+    const [productsCount] = await sql`SELECT count(*)::int as count FROM products WHERE category_id = ${id}`;
+    if (productsCount && productsCount.count > 0) {
+      return NextResponse.json({
+        success: false,
+        message: `لا يمكن حذف هذا القسم لأنه يحتوي على ${productsCount.count} منتج مسجل. يرجى نقل أو حذف المنتجات أولاً.`,
+      }, { status: 400 });
+    }
+
     await sql`DELETE FROM categories WHERE id = ${id}`;
     return NextResponse.json({
       success: true,

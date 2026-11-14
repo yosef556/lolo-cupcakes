@@ -51,6 +51,8 @@ import {
   CreateCouponRequest,
   getAdminCustomers,
   CustomerAdminDto,
+  updateCustomerAdmin,
+  getCustomerOrders,
   uploadImageFile,
   getAdminReviews,
   createAdminReview,
@@ -106,7 +108,10 @@ import {
   ShieldCheck,
   PhoneCall,
   Users,
-  Star
+  Star,
+  Crown,
+  Ban,
+  History
 } from "lucide-react";
 import Link from "next/link";
 import { playJoyfulChime } from "@/lib/soundFx";
@@ -308,6 +313,20 @@ export default function AdminDashboardPage() {
   const [customers, setCustomers] = useState<CustomerAdminDto[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [customerTierFilter, setCustomerTierFilter] = useState<"ALL" | "NORMAL" | "VIP" | "BLOCKED">("ALL");
+
+  // CRM Customer Modals State
+  const [selectedCustomerForOrders, setSelectedCustomerForOrders] = useState<CustomerAdminDto | null>(null);
+  const [customerOrdersList, setCustomerOrdersList] = useState<any[]>([]);
+  const [customerOrdersLoading, setCustomerOrdersLoading] = useState(false);
+  const [ordersModalOpen, setOrdersModalOpen] = useState(false);
+
+  const [selectedCustomerForPoints, setSelectedCustomerForPoints] = useState<CustomerAdminDto | null>(null);
+  const [pointsModalOpen, setPointsModalOpen] = useState(false);
+  const [pointsAction, setPointsAction] = useState<"ADD" | "DEDUCT" | "SET">("ADD");
+  const [pointsAmount, setPointsAmount] = useState<number>(50);
+  const [pointsSubmitting, setPointsSubmitting] = useState(false);
+  const [updatingTierCustomerId, setUpdatingTierCustomerId] = useState<string | null>(null);
 
   // Reschedule Order Modal State
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
@@ -688,6 +707,66 @@ export default function AdminDashboardPage() {
       });
     } finally {
       setPublishingN8nId(null);
+    }
+  };
+
+  // CRM Customer Management Handlers
+  const handleOpenCustomerOrders = async (c: CustomerAdminDto) => {
+    setSelectedCustomerForOrders(c);
+    setOrdersModalOpen(true);
+    setCustomerOrdersLoading(true);
+    try {
+      const orders = await getCustomerOrders(c.id);
+      setCustomerOrdersList(orders || []);
+    } catch {
+      setCustomerOrdersList([]);
+    } finally {
+      setCustomerOrdersLoading(false);
+    }
+  };
+
+  const handleOpenPointsModal = (c: CustomerAdminDto) => {
+    setSelectedCustomerForPoints(c);
+    setPointsAction("ADD");
+    setPointsAmount(50);
+    setPointsModalOpen(true);
+  };
+
+  const handleSavePoints = async () => {
+    if (!selectedCustomerForPoints) return;
+    setPointsSubmitting(true);
+    try {
+      const currentPts = selectedCustomerForPoints.loyaltyPoints || 0;
+      let newPts = currentPts;
+      if (pointsAction === "ADD") newPts = currentPts + Number(pointsAmount);
+      else if (pointsAction === "DEDUCT") newPts = Math.max(0, currentPts - Number(pointsAmount));
+      else if (pointsAction === "SET") newPts = Math.max(0, Number(pointsAmount));
+
+      await updateCustomerAdmin(selectedCustomerForPoints.id, { loyaltyPoints: newPts });
+      setCustomers((prev) =>
+        prev.map((item) => (item.id === selectedCustomerForPoints.id ? { ...item, loyaltyPoints: newPts } : item))
+      );
+      setPointsModalOpen(false);
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "فشل تحديث النقاط");
+    } finally {
+      setPointsSubmitting(false);
+    }
+  };
+
+  const handleUpdateCustomerTier = async (customerId: string, newTier: "NORMAL" | "VIP" | "BLOCKED") => {
+    setUpdatingTierCustomerId(customerId);
+    try {
+      await updateCustomerAdmin(customerId, { customerTier: newTier });
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === customerId ? { ...c, customerTier: newTier } : c))
+      );
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(error.message || "فشل تحديث تصنيف العميل");
+    } finally {
+      setUpdatingTierCustomerId(null);
     }
   };
 
@@ -4110,6 +4189,57 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* Tier Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-rose-50">
+              <span className="text-xs font-bold text-slate-500">تصفية حسب التصنيف:</span>
+              <button
+                type="button"
+                onClick={() => setCustomerTierFilter("ALL")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                  customerTierFilter === "ALL"
+                    ? "bg-rose-500 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                الكل ({customers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerTierFilter("VIP")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                  customerTierFilter === "VIP"
+                    ? "bg-amber-500 text-white shadow-xs"
+                    : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                }`}
+              >
+                <Crown className="w-3.5 h-3.5" />
+                <span>عملاء VIP ({customers.filter((c) => c.customerTier === "VIP").length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerTierFilter("BLOCKED")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                  customerTierFilter === "BLOCKED"
+                    ? "bg-rose-600 text-white shadow-xs"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                }`}
+              >
+                <Ban className="w-3.5 h-3.5" />
+                <span>محظورين ({customers.filter((c) => c.customerTier === "BLOCKED").length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerTierFilter("NORMAL")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                  customerTierFilter === "NORMAL"
+                    ? "bg-slate-700 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                عاديين ({customers.filter((c) => c.customerTier !== "VIP" && c.customerTier !== "BLOCKED").length})
+              </button>
+            </div>
+
             {/* Table */}
             {customersLoading ? (
               <div className="py-16 text-center text-slate-400 text-sm font-bold flex flex-col items-center justify-center gap-3">
@@ -4129,7 +4259,9 @@ export default function AdminDashboardPage() {
                       <th className="py-3.5 px-4 font-bold">البريد الإلكتروني</th>
                       <th className="py-3.5 px-4 font-bold">رقم الهاتف</th>
                       <th className="py-3.5 px-4 font-bold">العنوان المسجل</th>
-                      <th className="py-3.5 px-4 font-bold text-center">عدد الطلبات</th>
+                      <th className="py-3.5 px-4 font-bold text-center">التصنيف 🎖️</th>
+                      <th className="py-3.5 px-4 font-bold text-center">النقاط 💎</th>
+                      <th className="py-3.5 px-4 font-bold text-center">الطلبات 📦</th>
                       <th className="py-3.5 px-4 font-bold">إجمالي المشتريات</th>
                       <th className="py-3.5 px-4 font-bold">الصلاحية</th>
                       <th className="py-3.5 px-4 font-bold">تاريخ التسجيل</th>
@@ -4139,6 +4271,10 @@ export default function AdminDashboardPage() {
                   <tbody className="divide-y divide-rose-50">
                     {customers
                       .filter((c) => {
+                        if (customerTierFilter === "VIP" && c.customerTier !== "VIP") return false;
+                        if (customerTierFilter === "BLOCKED" && c.customerTier !== "BLOCKED") return false;
+                        if (customerTierFilter === "NORMAL" && (c.customerTier === "VIP" || c.customerTier === "BLOCKED")) return false;
+
                         if (!customerSearch.trim()) return true;
                         const q = customerSearch.toLowerCase().trim();
                         return (
@@ -4186,9 +4322,101 @@ export default function AdminDashboardPage() {
                               {c.address || <span className="text-slate-400 italic">غير محدد</span>}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-50 text-rose-600 border border-rose-200">
-                                {c.totalOrders} طلب
-                              </span>
+                              <div className="flex flex-col items-center gap-1.5">
+                                {c.customerTier === "VIP" ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+                                    <Crown className="w-3 h-3 text-amber-600" />
+                                    <span>عميل VIP 👑</span>
+                                  </span>
+                                ) : c.customerTier === "BLOCKED" ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                    <Ban className="w-3 h-3 text-rose-600" />
+                                    <span>محظور 🚫</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                    <span>عادي 👤</span>
+                                  </span>
+                                )}
+
+                                <div className="flex items-center gap-1">
+                                  {c.customerTier !== "VIP" && (
+                                    <button
+                                      type="button"
+                                      disabled={updatingTierCustomerId === c.id}
+                                      onClick={() => handleUpdateCustomerTier(c.id, "VIP")}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition"
+                                      title="ترقية العميل إلى فئة كبار العملاء VIP"
+                                    >
+                                      VIP ⭐
+                                    </button>
+                                  )}
+                                  {c.customerTier === "VIP" && (
+                                    <button
+                                      type="button"
+                                      disabled={updatingTierCustomerId === c.id}
+                                      onClick={() => handleUpdateCustomerTier(c.id, "NORMAL")}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                                      title="إعادة العميل للفئة العادية"
+                                    >
+                                      إلغاء VIP
+                                    </button>
+                                  )}
+                                  {c.customerTier !== "BLOCKED" ? (
+                                    <button
+                                      type="button"
+                                      disabled={updatingTierCustomerId === c.id}
+                                      onClick={() => {
+                                        if (confirm(`هل أنت متأكد من حظر العميل (${c.fullName || c.phone})؟ لن يتمكن من الطلب بعد الآن.`)) {
+                                          handleUpdateCustomerTier(c.id, "BLOCKED");
+                                        }
+                                      }}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition"
+                                      title="حظر هذا العميل ومنعه من الطلب نهائياً"
+                                    >
+                                      حظر 🚫
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={updatingTierCustomerId === c.id}
+                                      onClick={() => handleUpdateCustomerTier(c.id, "NORMAL")}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition"
+                                      title="فك حظر العميل والسماح له بالطلب"
+                                    >
+                                      فك الحظر ✅
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-gradient-to-r from-amber-500/10 to-yellow-500/10 text-amber-700 border border-amber-300">
+                                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>{c.loyaltyPoints || 0} نقطة</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPointsModal(c)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                  title="تعديل أو منح نقاط للعميل"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  <span>تعديل النقاط</span>
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCustomerOrders(c)}
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition shadow-2xs group"
+                                title="عرض سجل جميع طلبات وتواريخ مشتريات العميل بالتفصيل"
+                              >
+                                <span>{c.totalOrders || 0} طلب</span>
+                                <Eye className="w-3.5 h-3.5 text-rose-400 group-hover:text-rose-600" />
+                              </button>
                             </td>
                             <td className="py-3.5 px-4 font-black text-rose-600">
                               {Number(c.totalSpent || 0).toFixed(2)} ج.م
@@ -4234,6 +4462,252 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Customer Orders History Modal (USER REQUEST: عرض طلبات كل عميل وتواريخها) */}
+          {ordersModalOpen && selectedCustomerForOrders && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-rose-200 space-y-5 animate-in fade-in max-h-[90vh] flex flex-col">
+                <div className="border-b border-rose-100 pb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center font-black shadow-md shadow-rose-200">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base text-slate-900">
+                        سجل طلبات العميل: {selectedCustomerForOrders.fullName || "بدون اسم"}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        الهاتف: {selectedCustomerForOrders.phone || "—"} • رصيد النقاط: {selectedCustomerForOrders.loyaltyPoints || 0} 💎
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrdersModalOpen(false);
+                      setSelectedCustomerForOrders(null);
+                    }}
+                    className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                  {customerOrdersLoading ? (
+                    <div className="py-16 text-center text-slate-400 text-sm font-bold flex flex-col items-center justify-center gap-3">
+                      <RefreshCw className="w-8 h-8 animate-spin text-rose-400" />
+                      <span>جاري تحميل سجل طلبات العميل...</span>
+                    </div>
+                  ) : customerOrdersList.length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 text-sm font-bold">
+                      لا توجد طلبات مسجلة لهذا العميل حتى الآن.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-rose-50/50 text-slate-700 border-b border-rose-100">
+                          <tr>
+                            <th className="py-3 px-3 font-bold">رقم الطلب</th>
+                            <th className="py-3 px-3 font-bold">تاريخ الطلب</th>
+                            <th className="py-3 px-3 font-bold">المبلغ الإجمالي</th>
+                            <th className="py-3 px-3 font-bold">نوع الاستلام</th>
+                            <th className="py-3 px-3 font-bold">طريقة الدفع</th>
+                            <th className="py-3 px-3 font-bold text-center">حالة الطلب</th>
+                            <th className="py-3 px-3 font-bold">الأصناف</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-rose-50">
+                          {customerOrdersList.map((ord: any) => (
+                            <tr key={ord.id} className="hover:bg-rose-50/30 transition">
+                              <td className="py-3 px-3 font-mono font-black text-rose-600">
+                                #{ord.orderNumber}
+                              </td>
+                              <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">
+                                {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("ar-EG", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                }) : "—"}
+                              </td>
+                              <td className="py-3 px-3 font-black text-slate-900">
+                                {Number(ord.totalAmount || 0).toFixed(2)} ج.م
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  ord.fulfillmentType === "DELIVERY" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+                                }`}>
+                                  {ord.fulfillmentType === "DELIVERY" ? "توصيل 🛵" : "استلام فرع 🏪"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-slate-600">
+                                {ord.paymentMethod === "CASH" ? "عند الاستلام (كاش)" : ord.paymentMethod === "MANUAL_TRANSFER" ? "تحويل محفظة / انستا باي" : ord.paymentMethod}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                  ord.status === "DELIVERED"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : ord.status === "CANCELLED"
+                                    ? "bg-rose-100 text-rose-800"
+                                    : ord.status === "CONFIRMED" || ord.status === "OUT_FOR_DELIVERY"
+                                    ? "bg-sky-100 text-sky-800"
+                                    : "bg-amber-100 text-amber-800"
+                                }`}>
+                                  {ord.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-slate-600 text-[11px] max-w-[200px] truncate" title={
+                                (ord.items || []).map((it: any) => `${it.productNameAr} (×${it.quantity})`).join("، ")
+                              }>
+                                {(ord.items || []).map((it: any) => `${it.productNameAr} (×${it.quantity})`).join("، ") || "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-rose-100 pt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrdersModalOpen(false);
+                      setSelectedCustomerForOrders(null);
+                    }}
+                    className="px-5 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Customer Loyalty Points Modal (USER REQUEST: تعديل وزيادة نقاط كل عميل) */}
+          {pointsModalOpen && selectedCustomerForPoints && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-amber-200 space-y-5 animate-in fade-in">
+                <div className="border-b border-amber-100 pb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shadow-md shadow-amber-200">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base text-slate-900">تعديل رصيد نقاط الولاء</h3>
+                      <p className="text-xs text-slate-500">للعميل: {selectedCustomerForPoints.fullName || "بدون اسم"}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPointsModalOpen(false);
+                      setSelectedCustomerForPoints(null);
+                    }}
+                    className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Current Balance Box */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900">الرصيد الحالي للعميل:</span>
+                  <span className="text-xl font-black text-amber-600">{selectedCustomerForPoints.loyaltyPoints || 0} نقطة 💎</span>
+                </div>
+
+                {/* Action Mode Toggle */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 block">نوع العملية:</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPointsAction("ADD")}
+                      className={`py-2 px-3 rounded-xl text-xs font-black transition border ${
+                        pointsAction === "ADD"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      ➕ إضافة مكافأة
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPointsAction("DEDUCT")}
+                      className={`py-2 px-3 rounded-xl text-xs font-black transition border ${
+                        pointsAction === "DEDUCT"
+                          ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      ➖ خصم نقاط
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPointsAction("SET")}
+                      className={`py-2 px-3 rounded-xl text-xs font-black transition border ${
+                        pointsAction === "SET"
+                          ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      ⚙️ تعيين رصيد
+                    </button>
+                  </div>
+                </div>
+
+                {/* Amount Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    {pointsAction === "ADD" ? "عدد النقاط المراد إضافتها:" : pointsAction === "DEDUCT" ? "عدد النقاط المراد خصمها:" : "الرصيد الجديد المحدد بالكامل:"}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={pointsAmount}
+                    onChange={(e) => setPointsAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-amber-300 font-black text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    الرصيد النهائي المتوقع بعد التعديل:{" "}
+                    <strong className="text-amber-700 font-black">
+                      {pointsAction === "ADD"
+                        ? (selectedCustomerForPoints.loyaltyPoints || 0) + Number(pointsAmount)
+                        : pointsAction === "DEDUCT"
+                        ? Math.max(0, (selectedCustomerForPoints.loyaltyPoints || 0) - Number(pointsAmount))
+                        : Number(pointsAmount)}{" "}
+                      نقطة
+                    </strong>
+                  </p>
+                </div>
+
+                <div className="border-t border-amber-100 pt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPointsModalOpen(false);
+                      setSelectedCustomerForPoints(null);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-gray-100 transition"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pointsSubmitting}
+                    onClick={handleSavePoints}
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition shadow-md shadow-amber-200 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {pointsSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>تأكيد وحفظ النقاط</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -5437,6 +5911,46 @@ export default function AdminDashboardPage() {
                     className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_name_ar" ? "جاري الحفظ..." : "حفظ اسم المتجر"}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">عنوان التبويب في المتصفح (Browser Tab Title) 🌐:</label>
+                  <p className="text-[11px] text-slate-400 mb-1">الاسم والنص الذي يظهر في أعلى شريط التبويب بالمتصفح للمستخدمين</p>
+                  <input
+                    type="text"
+                    placeholder="لولو كب كيك | Lolo Cupcakes - تورتات وحلويات فاخرة"
+                    value={editingSettings["store_tab_title"] ?? (settings.find((s) => s.key === "store_tab_title")?.value || "")}
+                    onChange={(e) => setEditingSettings({ ...editingSettings, store_tab_title: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                  />
+                  <button
+                    type="button"
+                    disabled={savingSettingKey === "store_tab_title"}
+                    onClick={() => handleSaveSetting("store_tab_title")}
+                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {savingSettingKey === "store_tab_title" ? "جاري الحفظ..." : "حفظ عنوان التبويب"}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">رابط أيقونة التبويب بالمتصفح (Favicon URL) 🏷️:</label>
+                  <p className="text-[11px] text-slate-400 mb-1">اللوجو أو الأيقونة المصغرة بجانب اسم المتجر في التبويب (افتراضياً: شعار المتجر)</p>
+                  <input
+                    type="text"
+                    placeholder="/custom-logo.png"
+                    value={editingSettings["store_favicon_url"] ?? (settings.find((s) => s.key === "store_favicon_url")?.value || "")}
+                    onChange={(e) => setEditingSettings({ ...editingSettings, store_favicon_url: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                  />
+                  <button
+                    type="button"
+                    disabled={savingSettingKey === "store_favicon_url"}
+                    onClick={() => handleSaveSetting("store_favicon_url")}
+                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {savingSettingKey === "store_favicon_url" ? "جاري الحفظ..." : "حفظ أيقونة التبويب"}
                   </button>
                 </div>
 

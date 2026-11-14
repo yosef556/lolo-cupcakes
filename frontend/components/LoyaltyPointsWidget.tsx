@@ -38,28 +38,28 @@ export default function LoyaltyPointsWidget({ onApplyPointsDiscount, orderSubtot
   const potentialEarnedPoints = Math.floor(orderSubtotal / 10);
 
   return (
-    <div className="bg-gradient-to-br from-amber-50/80 via-white to-rose-50/40 p-5 rounded-3xl border border-amber-200 shadow-sm space-y-3.5 text-slate-800">
+    <div className="bg-gradient-to-br from-amber-50/80 via-white to-rose-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 p-5 rounded-3xl border border-amber-200 dark:border-amber-900/40 shadow-sm space-y-3.5 text-slate-800 dark:text-slate-100">
       
-      <div className="flex items-center justify-between border-b border-amber-200/70 pb-2.5">
+      <div className="flex items-center justify-between border-b border-amber-200/70 dark:border-amber-900/40 pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-amber-400 dark:bg-amber-500 text-slate-900 flex items-center justify-center shadow-sm">
             <Crown className="w-4 h-4 fill-slate-900" />
           </div>
           <div>
-            <h4 className="font-black text-xs sm:text-sm text-slate-900">نادي لولو للمكافآت الملكية (VIP Club) 👑</h4>
-            <span className="text-[10px] text-amber-800 font-bold">عضوية فضية مميزة • تكسب نقاطاً مع كل طلب</span>
+            <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">نادي لولو للمكافآت الملكية (VIP Club) 👑</h4>
+            <span className="text-[10px] text-amber-800 dark:text-amber-400 font-bold">عضوية فضية مميزة • تكسب نقاطاً مع كل طلب</span>
           </div>
         </div>
 
-        <div className="px-3 py-1 rounded-full bg-white text-amber-700 text-xs font-black border border-amber-300 shadow-sm">
+        <div className="px-3 py-1 rounded-full bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 text-xs font-black border border-amber-300 dark:border-amber-700/60 shadow-sm">
           {points} نقطة
         </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 text-xs">
         <div className="space-y-0.5">
-          <span className="font-bold text-slate-800 block">استبدال 100 نقطة بخصم 50 ج.م فوري:</span>
-          <span className="text-[10px] text-slate-500 block">
+          <span className="font-bold text-slate-800 dark:text-slate-200 block">استبدال 100 نقطة بخصم 50 ج.م فوري:</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
             ستحصل أيضاً على +{potentialEarnedPoints} نقطة إضافية عند إتمام هذا الطلب ✨
           </span>
         </div>
@@ -70,7 +70,7 @@ export default function LoyaltyPointsWidget({ onApplyPointsDiscount, orderSubtot
           className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm ${
             isRedeemed
               ? "bg-emerald-600 text-white"
-              : "bg-amber-400 hover:bg-amber-500 text-slate-900"
+              : "bg-amber-400 hover:bg-amber-500 dark:bg-amber-500 dark:hover:bg-amber-400 text-slate-900 font-black"
           }`}
         >
           {isRedeemed ? (

@@ -13,6 +13,8 @@ export async function GET() {
         u.email,
         u.phone,
         u.status,
+        COALESCE(u.customer_tier, 'NORMAL') AS "customerTier",
+        COALESCE(u.loyalty_points, 0)::int AS "loyaltyPoints",
         u.avatar_url AS "avatarUrl",
         u.created_at AS "createdAt",
         c.notes AS address,

@@ -46,6 +46,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
+    // Safely unlink any historical orders and addresses before deleting to guarantee zero constraint errors
+    await sql`UPDATE orders SET delivery_zone_id = NULL WHERE delivery_zone_id = ${id}`.catch(() => {});
+    await sql`UPDATE customer_addresses SET zone_id = NULL WHERE zone_id = ${id}`.catch(() => {});
     await sql`DELETE FROM delivery_zones WHERE id = ${id}`;
     return NextResponse.json({
       success: true,

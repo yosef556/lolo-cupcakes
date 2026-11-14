@@ -28,6 +28,21 @@ export async function POST(req: NextRequest) {
       mapsUrl,
     } = body;
 
+    // Check if customer phone or account is blocked / banned (Anti-Fraud)
+    const cleanPhone = (customerPhone || "").replace(/\D/g, "");
+    const [blockedUser] = await sql`
+      SELECT id, status, customer_tier FROM users 
+      WHERE (phone = ${customerPhone} OR phone = ${cleanPhone})
+      AND (status = 'BLOCKED' OR customer_tier = 'BLOCKED')
+      LIMIT 1
+    `;
+    if (blockedUser) {
+      return NextResponse.json({
+        success: false,
+        message: "تم إيقاف وحظر هذا الحساب أو رقم الهاتف من تسجيل الطلبات بقرار من إدارة لولو كب كيك. يُرجى مراجعة الإدارة.",
+      }, { status: 403 });
+    }
+
     // Check idempotency
     const [existing] = await sql`SELECT * FROM orders WHERE idempotency_key = ${idempotencyKey} LIMIT 1`;
     if (existing) {
@@ -212,6 +227,16 @@ export async function POST(req: NextRequest) {
       items: insertedItems,
       createdAt: new Date().toISOString(),
     };
+
+    // Award loyalty points to customer (1 point per 10 EGP)
+    const earnedPoints = Math.floor(totalAmount / 10);
+    if (earnedPoints > 0) {
+      await sql`
+        UPDATE users 
+        SET loyalty_points = loyalty_points + ${earnedPoints}
+        WHERE phone = ${customerPhone} OR phone = ${cleanPhone}
+      `.catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,

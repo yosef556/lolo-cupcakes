@@ -95,6 +95,8 @@ export interface StoreSettingsContextValue {
   heroImageUrl: string;
   promoBannerActive: boolean;
   promoBannerText: string;
+  storeTabTitle: string;
+  storeFaviconUrl: string;
   heroSlides: HeroSlideDto[];
   cakeSlides: CakeSlideDto[];
   refreshSettings: () => Promise<void>;
@@ -144,6 +146,8 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue>({
   heroImageUrl: "/placeholders/cake-1.jpg",
   promoBannerActive: true,
   promoBannerText: "🎉 عروض نهاية الأسبوع: خصم 15% على جميع التورتات والبوكسات العائلية بكود: LOLO15",
+  storeTabTitle: "لولو كب كيك | Lolo Cupcakes - أشهى الحلويات والتورتات",
+  storeFaviconUrl: "/favicon.ico",
   heroSlides: DEFAULT_HERO_SLIDES,
   cakeSlides: DEFAULT_CAKE_SLIDES,
   refreshSettings: async () => {},
@@ -239,6 +243,9 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
       } catch {}
     }
 
+    const storeTabTitle = settings["store_tab_title"]?.trim() || (storeName ? `${storeName} | أشهى الحلويات والتورتات` : "لولو كب كيك | Lolo Cupcakes");
+    const storeFaviconUrl = settings["store_favicon_url"]?.trim() || storeLogoUrl || "/favicon.ico";
+
     return {
       settings,
       loading,
@@ -263,11 +270,30 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
       heroImageUrl,
       promoBannerActive,
       promoBannerText,
+      storeTabTitle,
+      storeFaviconUrl,
       heroSlides,
       cakeSlides,
       refreshSettings: fetchSettings,
     };
   }, [settings, loading, fetchSettings]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (value.storeTabTitle) {
+      document.title = value.storeTabTitle;
+    }
+    const iconUrl = value.storeFaviconUrl || value.storeLogoUrl || "/favicon.ico";
+    if (iconUrl) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = iconUrl;
+    }
+  }, [value.storeTabTitle, value.storeFaviconUrl, value.storeLogoUrl]);
 
   return (
     <StoreSettingsContext.Provider value={value}>
