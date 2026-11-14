@@ -5,7 +5,7 @@ import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Lock, Mail, Phone, User, MapPin, ArrowLeft, ShieldCheck, Heart } from "lucide-react";
+import { Lock, Mail, Phone, User, MapPin, ArrowLeft, ShieldCheck, Heart, Navigation, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,6 +17,54 @@ export default function RegisterPage() {
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Optional GPS Location Recommendation State (USER REQUEST: نصيحة اختيارية أثناء التسجيل)
+  const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number; mapsUrl: string } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const handleCaptureRegisterGps = () => {
+    if (!navigator.geolocation) {
+      alert("متصفحك لا يدعم تحديد الموقع الجغرافي");
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+        const loc = { lat, lng, mapsUrl };
+        setGpsLocation(loc);
+        localStorage.setItem("user_gps_location", JSON.stringify(loc));
+        setGpsLoading(false);
+
+        // Reverse geocoding to auto-fill address input
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`,
+            { headers: { "Accept-Language": "ar" } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.address) {
+              const addr = data.address;
+              const road = addr.road || addr.pedestrian || addr.street || "";
+              const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
+              const city = addr.city || addr.town || "القاهرة";
+              const detected = [road, suburb, city].filter(Boolean).join("، ");
+              if (detected) {
+                setAddress(detected);
+              }
+            }
+          }
+        } catch {}
+      },
+      () => {
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   // If already logged in, redirect to profile
   React.useEffect(() => {
@@ -157,6 +205,50 @@ export default function RegisterPage() {
                 className="w-full pr-10 pl-4 py-2.5 rounded-2xl border border-pink-200 text-xs font-medium text-slate-800 bg-white/70 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
               />
             </div>
+          </div>
+
+          {/* Friendly Location Recommendation Tip (Optional at registration) */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-50 via-pink-50 to-rose-50 border border-sky-200/80 space-y-2.5">
+            <div className="flex items-start gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-sky-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-xs shadow-xs">
+                💡
+              </div>
+              <div className="text-[11px] text-slate-700 leading-relaxed">
+                <span className="font-black text-sky-900 block mb-0.5">نصيحة لتسريع استلام طلباتك مستقبلاً:</span>
+                تحديد موقعك الجغرافي الآن اختياري، ويسهل ملء بياناتك بنقرة واحدة عند طلب أي أوردر. يمكنك تحديده الآن عبر الـ GPS أو تخطيه وإكماله عند إجراء أول طلب.
+              </div>
+            </div>
+
+            {gpsLocation ? (
+              <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-300 rounded-xl text-xs text-emerald-800 font-bold shadow-xs">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  تم التقاط موقعك وحفظه لتسهيل طلباتك القادمة ✅
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setGpsLocation(null)}
+                  className="text-[10px] text-rose-500 hover:underline shrink-0"
+                >
+                  إلغاء
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCaptureRegisterGps}
+                  disabled={gpsLoading}
+                  className="flex-1 py-2 px-3 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-black text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                >
+                  <Navigation className={`w-3.5 h-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
+                  <span>{gpsLoading ? "جاري الالتقاط..." : "📍 تحديد موقعي الحالي عبر GPS (اختياري)"}</span>
+                </button>
+                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                  أو تخطي لاحقاً
+                </span>
+              </div>
+            )}
           </div>
 
           <div>

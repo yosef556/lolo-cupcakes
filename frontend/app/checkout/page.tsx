@@ -38,7 +38,9 @@ import {
   Copy,
   Check,
   UploadCloud,
-  FileCheck
+  FileCheck,
+  MapPin,
+  Navigation
 } from "lucide-react";
 
 interface DirectItem {
@@ -81,6 +83,78 @@ function CheckoutContent() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
+
+  // GPS Location State (USER REQUEST: إجبار اللوكيشن أثناء طلب الأوردر لمنع التحايل)
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; mapsUrl: string } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Auto-load previously saved GPS location (e.g. from registration or prior order)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("user_gps_location");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.lat && parsed?.lng) {
+          setGpsCoords({
+            lat: parsed.lat,
+            lng: parsed.lng,
+            mapsUrl: parsed.mapsUrl || `https://maps.google.com/?q=${parsed.lat},${parsed.lng}`
+          });
+        }
+      }
+    } catch {}
+  }, []);
+
+  const handleCaptureGps = () => {
+    if (!navigator.geolocation) {
+      setGpsError("متصفحك لا يدعم تحديد الموقع الجغرافي");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+        const coordsObj = { lat, lng, mapsUrl };
+        setGpsCoords(coordsObj);
+        localStorage.setItem("user_gps_location", JSON.stringify(coordsObj));
+        setGpsLoading(false);
+
+        // Reverse geocoding to auto-fill street address if empty
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`,
+            { headers: { "Accept-Language": "ar" } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.address) {
+              const addr = data.address;
+              const road = addr.road || addr.pedestrian || addr.street || "";
+              const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
+              const city = addr.city || addr.town || "القاهرة";
+              const detected = [road, suburb, city].filter(Boolean).join("، ");
+              if (detected) {
+                setStreetAddress((prev) => prev ? prev : detected);
+              }
+            }
+          }
+        } catch {}
+      },
+      (err) => {
+        setGpsLoading(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsError("تم رفض إذن الوصول للموقع. يُرجى تفعيل إذن الموقع الجغرافي (Location Permission) في متصفحك أو إعدادات هاتفك لتأكيد الطلب.");
+        } else {
+          setGpsError("تعذر الاتصال بالأقمار الصناعية لتحديد الموقع بدقة، يرجى المحاولة مجدداً والتأكد من تشغيل الـ GPS.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   // Specific custom delivery time (USER REQUEST: flexible specific time e.g. 8:00 مساءً)
   const [specificDeliveryTime, setSpecificDeliveryTime] = useState("");
@@ -226,7 +300,7 @@ function CheckoutContent() {
     );
   };
 
-  const handleLocationPicked = (loc: { neighborhood: string; formattedAddress: string }) => {
+  const handleLocationPicked = (loc: { neighborhood: string; formattedAddress: string; lat?: number; lng?: number }) => {
     // Robust normalization matching with existing zones
     const norm = (s: string) => s.replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
     const locNorm = norm(loc.neighborhood);
@@ -250,6 +324,15 @@ function CheckoutContent() {
       setSelectedZoneId(match.id);
     }
     setStreetAddress(loc.formattedAddress);
+    if (loc.lat && loc.lng) {
+      const coordsObj = {
+        lat: loc.lat,
+        lng: loc.lng,
+        mapsUrl: `https://maps.google.com/?q=${loc.lat},${loc.lng}`,
+      };
+      setGpsCoords(coordsObj);
+      localStorage.setItem("user_gps_location", JSON.stringify(coordsObj));
+    }
   };
 
   // Calculations for Upsells and Discounts
@@ -299,12 +382,26 @@ function CheckoutContent() {
     }
 
     if (fulfillmentType === "DELIVERY") {
+      if (!gpsCoords) {
+        setSubmitError("⚠️ إجباري: يرجى الضغط على زر 'تحديد موقع الـ GPS' لتأكيد موقع التوصيل الدقيق ومنع أي خطأ أو إلغاء للطلب.");
+        const el = document.getElementById("gps-delivery-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return false;
+      }
       if (!selectedZoneId) {
         setSubmitError("يرجى اختيار منطقة التوصيل");
         return false;
       }
       if (!streetAddress.trim()) {
         setSubmitError("يرجى إدخال اسم الشارع والعنوان بالتفصيل");
+        return false;
+      }
+      if (!buildingNumber.trim()) {
+        setSubmitError("يرجى إدخال رقم العقار / العمارة");
+        return false;
+      }
+      if (!floorDoor.trim()) {
+        setSubmitError("يرجى إدخال الدور ورقم الشقة");
         return false;
       }
     }
@@ -319,8 +416,11 @@ function CheckoutContent() {
     setSubmitting(true);
     setSubmitError(null);
 
-    // Build notes string including chosen upsell addons, loyalty redemption, and manual transfer details
+    // Build notes string including chosen upsell addons, loyalty redemption, GPS location, and manual transfer details
     let finalNotes = customerNotes.trim();
+    if (fulfillmentType === "DELIVERY" && gpsCoords) {
+      finalNotes = (finalNotes ? finalNotes + " | " : "") + `[📍 موقع الـ GPS المعتمد: ${gpsCoords.mapsUrl}]`;
+    }
     if (specificDeliveryTime.trim()) {
       finalNotes = (finalNotes ? finalNotes + " | " : "") + `[الموعد المحدد المطلوب: ${specificDeliveryTime.trim()}]`;
     }
@@ -357,6 +457,9 @@ function CheckoutContent() {
       paymentMethod: chosenPaymentMethod,
       customerNotes: finalNotes || null,
       couponCode: appliedCoupon || null,
+      latitude: gpsCoords?.lat || null,
+      longitude: gpsCoords?.lng || null,
+      mapsUrl: gpsCoords?.mapsUrl || null,
     };
 
     try {
@@ -522,6 +625,79 @@ function CheckoutContent() {
             {/* Delivery Details */}
             {fulfillmentType === "DELIVERY" ? (
               <div className="space-y-5 pt-2">
+                {/* Mandatory GPS Verification Box (USER REQUEST: إجبار اللوكيشن لمنع التحايل) */}
+                <div id="gps-delivery-section" className={`p-4 sm:p-5 rounded-3xl border-2 transition-all duration-300 ${
+                  gpsCoords 
+                    ? "bg-emerald-50/80 border-emerald-300 shadow-sm" 
+                    : "bg-gradient-to-r from-rose-50 to-pink-50 border-rose-300 ring-4 ring-rose-100/50 shadow-md"
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wide bg-white border shadow-xs">
+                        {gpsCoords ? (
+                          <span className="text-emerald-700 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            تم تأكيد وتثبيت موقع الـ GPS بنجاح ✅
+                          </span>
+                        ) : (
+                          <span className="text-rose-600 flex items-center gap-1.5 animate-pulse">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                            تحديد موقع الـ GPS إجباري لتأكيد الطلب 📍
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                        {gpsCoords ? "إحداثيات موقعك الجغرافي الدقيق" : "تحديد موقعك الحالي عبر الأقمار الصناعية (GPS)"}
+                      </h4>
+                      <p className="text-[11px] text-slate-600 font-medium">
+                        {gpsCoords 
+                          ? "سيصل المندوب مباشرة إلى هذا الموقع الدقيق لضمان سرعة الاستلام وسلامة الكعكات المبردة."
+                          : "لتفادي أي أخطاء في العنوان أو إلغاء للطلب، يجب تأكيد موقعك الحالي من هاتفك أو جهازك."}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleCaptureGps}
+                        disabled={gpsLoading}
+                        className={`px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-sm ${
+                          gpsCoords
+                            ? "bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50"
+                            : "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:brightness-110 active:scale-95"
+                        } disabled:opacity-50`}
+                      >
+                        <Navigation className={`w-3.5 h-3.5 ${gpsLoading ? "animate-spin text-white" : ""}`} />
+                        <span>{gpsLoading ? "جاري التقاط الموقع..." : (gpsCoords ? "تحديث الموقع عبر GPS 🔄" : "📍 تحديد موقعي الآن")}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {gpsCoords && (
+                    <div className="mt-3 pt-3 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="font-bold text-emerald-800">
+                        📍 الإحداثيات: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
+                      </span>
+                      <a
+                        href={gpsCoords.mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-black text-emerald-700 hover:text-emerald-900 underline inline-flex items-center gap-1"
+                      >
+                        <span>فتح موقعك على خرائط جوجل 🗺️</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  )}
+
+                  {gpsError && (
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-white border border-rose-300 text-xs text-rose-700 font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
+                      <span>{gpsError}</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Visual Location Picker Component */}
                 <DeliveryLocationPicker 
                   onLocationSelect={handleLocationPicked} 
@@ -1132,6 +1308,17 @@ function CheckoutContent() {
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{submitError}</span>
+              </div>
+            )}
+
+            {/* Mandatory GPS Reminder Badge if delivery is chosen without GPS */}
+            {fulfillmentType === "DELIVERY" && !gpsCoords && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-xs text-amber-900 font-bold flex items-start gap-2 shadow-xs animate-in fade-in">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 mt-0.5" />
+                <div>
+                  <span className="block font-black text-amber-950 mb-0.5">⚠️ تحديد موقع الـ GPS إجباري:</span>
+                  يُرجى الضغط على زر &quot;تحديد موقعي الآن&quot; في قسم التوصيل أعلاه لتأكيد موقعك ومنع التحايل أو إلغاء الطلب.
+                </div>
               </div>
             )}
 

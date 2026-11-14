@@ -179,6 +179,9 @@ export interface CreateOrderRequest {
   paymentMethod: "CASH" | "MANUAL_TRANSFER" | "CARD_ONLINE";
   customerNotes?: string | null;
   couponCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapsUrl?: string | null;
 }
 
 export interface OrderResponseDto {

@@ -836,35 +836,57 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Sliders Handlers (USER REQUEST: Dynamic Slides for Hero & Custom Cakes)
-  const loadSliders = useCallback(() => {
+  // Sliders Handlers (USER REQUEST: Dynamic Slides for Hero & Custom Cakes synced with Neon DB)
+  const loadSliders = useCallback(async () => {
     try {
-      const storedHero = localStorage.getItem("store_hero_slides");
-      if (storedHero) {
-        setHeroSlidesAdmin(JSON.parse(storedHero));
+      const res = await getStoreSettings().catch(() => []);
+      const settingsMap: Record<string, string> = {};
+      res.forEach((s) => { settingsMap[s.key] = s.value; });
+
+      if (settingsMap["hero_slides"]) {
+        try {
+          const parsed = JSON.parse(settingsMap["hero_slides"]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setHeroSlidesAdmin(parsed);
+          }
+        } catch {}
       } else {
-        setHeroSlidesAdmin([
-          { src: "/images/hero-dessert.jpg", title: "تشكيلة المناسبات والاحتفالات الملكية", tag: "الأكثر طلباً ★", sub: "مخبوزة طازجة اليوم بحرفية فندقية" },
-          { src: "/placeholders/cake-1.jpg", title: "تورتات الشوكولاتة والتوت البري الفاخرة", tag: "تورتات فاخرة 🎂", sub: "شوكولاتة بلجيكية 70% وزبدة نيوزيلندية" },
-          { src: "/placeholders/cupcake-1.jpg", title: "كب كيك الفراولة والفانيليا الفرنسية", tag: "طازج يومياً 🍓", sub: "قوام مخملي هش وخفيف" },
-          { src: "/placeholders/gateau-1.jpg", title: "قطع الجاتوه وحلويات النخبة الفاخرة", tag: "حلويات النخبة ✨", sub: "مثالية للمناسبات وتجمعات العائلة" },
-        ]);
+        const storedHero = localStorage.getItem("store_hero_slides");
+        if (storedHero) {
+          try { setHeroSlidesAdmin(JSON.parse(storedHero)); } catch {}
+        } else {
+          setHeroSlidesAdmin([
+            { src: "/images/hero-dessert.jpg", title: "تشكيلة المناسبات والاحتفالات الملكية", tag: "الأكثر طلباً ★", sub: "مخبوزة طازجة اليوم بحرفية فندقية" },
+            { src: "/placeholders/cake-1.jpg", title: "تورتات الشوكولاتة والتوت البري الفاخرة", tag: "تورتات فاخرة 🎂", sub: "شوكولاتة بلجيكية 70% وزبدة نيوزيلندية" },
+            { src: "/placeholders/cupcake-1.jpg", title: "كب كيك الفراولة والفانيليا الفرنسية", tag: "طازج يومياً 🍓", sub: "قوام مخملي هش وخفيف" },
+            { src: "/placeholders/gateau-1.jpg", title: "قطع الجاتوه وحلويات النخبة الفاخرة", tag: "حلويات النخبة ✨", sub: "مثالية للمناسبات وتجمعات العائلة" },
+          ]);
+        }
       }
 
-      const storedCake = localStorage.getItem("store_cake_slides");
-      if (storedCake) {
-        setCakeSlidesAdmin(JSON.parse(storedCake));
+      if (settingsMap["cake_slides"]) {
+        try {
+          const parsed = JSON.parse(settingsMap["cake_slides"]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCakeSlidesAdmin(parsed);
+          }
+        } catch {}
       } else {
-        setCakeSlidesAdmin([
-          { src: "/images/custom-cake-hero.jpg", title: "تورتة زفاف ملكية 3 أدوار", flavor: "فانيليا مدغشقر وتوت أحمر", tiers: "3 أدوار فاخرة" },
-          { src: "/placeholders/cake-1.jpg", title: "تورتة شوكولاتة بلجيكية وتوت بري", flavor: "شوكولاتة داكنة 70% وجناش كريمي", tiers: "دورين مناسبات" },
-          { src: "/placeholders/cake-2.jpg", title: "تورتة احتفالات مبهجة بالورد الطبيعي", flavor: "ريد فيلفيت وكريمة الجبن الإيطالية", tiers: "تصميم خاص بالطلب" },
-        ]);
+        const storedCake = localStorage.getItem("store_cake_slides");
+        if (storedCake) {
+          try { setCakeSlidesAdmin(JSON.parse(storedCake)); } catch {}
+        } else {
+          setCakeSlidesAdmin([
+            { src: "/images/custom-cake-hero.jpg", title: "تورتة زفاف ملكية 3 أدوار", flavor: "فانيليا مدغشقر وتوت أحمر", tiers: "3 أدوار فاخرة" },
+            { src: "/placeholders/cake-1.jpg", title: "تورتة شوكولاتة بلجيكية وتوت بري", flavor: "شوكولاتة داكنة 70% وجناش كريمي", tiers: "دورين مناسبات" },
+            { src: "/placeholders/cake-2.jpg", title: "تورتة احتفالات مبهجة بالورد الطبيعي", flavor: "ريد فيلفيت وكريمة الجبن الإيطالية", tiers: "تصميم خاص بالطلب" },
+          ]);
+        }
       }
     } catch {}
   }, []);
 
-  const handleAddHeroSlide = (e: React.FormEvent) => {
+  const handleAddHeroSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSlideSrc.trim() || !newSlideTitle.trim()) {
       showToast("يرجى إدخال رابط الصورة وعنوان الشريحة", "error");
@@ -878,19 +900,29 @@ export default function AdminDashboardPage() {
     }];
     setHeroSlidesAdmin(updated);
     localStorage.setItem("store_hero_slides", JSON.stringify(updated));
+    try {
+      await updateStoreSetting("hero_slides", JSON.stringify(updated));
+      showToast("تم حفظ شريحة الهيرو في قاعدة البيانات السحابية وتطبيقها بنجاح! 🖼️");
+    } catch {
+      showToast("تم حفظ شريحة الهيرو بنجاح! 🖼️");
+    }
     setNewSlideSrc("");
     setNewSlideTitle("");
-    showToast("تمت إضافة شريحة الهيرو وتطبيقها على الصفحة الرئيسية بنجاح! 🖼️");
   };
 
-  const handleDeleteHeroSlide = (idx: number) => {
+  const handleDeleteHeroSlide = async (idx: number) => {
     const updated = heroSlidesAdmin.filter((_, i) => i !== idx);
     setHeroSlidesAdmin(updated);
     localStorage.setItem("store_hero_slides", JSON.stringify(updated));
-    showToast("تم حذف شريحة الهيرو بنجاح 🗑️");
+    try {
+      await updateStoreSetting("hero_slides", JSON.stringify(updated));
+      showToast("تم حذف شريحة الهيرو وتحديث قاعدة البيانات بنجاح 🗑️");
+    } catch {
+      showToast("تم حذف شريحة الهيرو بنجاح 🗑️");
+    }
   };
 
-  const handleAddCakeSlide = (e: React.FormEvent) => {
+  const handleAddCakeSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCakeSrc.trim() || !newCakeTitle.trim()) {
       showToast("يرجى إدخال رابط الصورة وعنوان تورتة العرض", "error");
@@ -904,17 +936,27 @@ export default function AdminDashboardPage() {
     }];
     setCakeSlidesAdmin(updated);
     localStorage.setItem("store_cake_slides", JSON.stringify(updated));
+    try {
+      await updateStoreSetting("cake_slides", JSON.stringify(updated));
+      showToast("تم حفظ تورتة العرض في قاعدة البيانات وتطبيقها بنجاح! 🎂");
+    } catch {
+      showToast("تمت إضافة شريحة التورتة بنجاح! 🎂");
+    }
     setNewCakeSrc("");
     setNewCakeTitle("");
     setNewCakeFlavor("");
-    showToast("تمت إضافة شريحة التورتة وتطبيقها على الصفحة الرئيسية بنجاح! 🎂");
   };
 
-  const handleDeleteCakeSlide = (idx: number) => {
+  const handleDeleteCakeSlide = async (idx: number) => {
     const updated = cakeSlidesAdmin.filter((_, i) => i !== idx);
     setCakeSlidesAdmin(updated);
     localStorage.setItem("store_cake_slides", JSON.stringify(updated));
-    showToast("تم حذف شريحة التورتة بنجاح 🗑️");
+    try {
+      await updateStoreSetting("cake_slides", JSON.stringify(updated));
+      showToast("تم حذف شريحة التورتة وتحديث قاعدة البيانات بنجاح 🗑️");
+    } catch {
+      showToast("تم حذف شريحة التورتة بنجاح 🗑️");
+    }
   };
 
   // Order Accept & Reject Handlers (USER REQUEST: قبول الطلب ورفض الطلب مع سبب الرفض)
@@ -3462,10 +3504,48 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="sm:col-span-2">
-                      <span className="text-slate-400 block font-bold text-[11px]">عنوان التوصيل المعتمد:</span>
-                      <span className="font-bold text-slate-800 leading-relaxed block mt-0.5">
-                        {inspectingOrder.deliveryAddressSnapshot || "استلام من الفرع"}
-                      </span>
+                      <span className="text-slate-400 block font-bold text-[11px] mb-1">عنوان التوصيل المعتمد وإحداثيات GPS:</span>
+                      {(() => {
+                        let parsed: any = null;
+                        if (inspectingOrder.deliveryAddressSnapshot) {
+                          try {
+                            parsed = JSON.parse(inspectingOrder.deliveryAddressSnapshot);
+                          } catch {}
+                        }
+                        const mapsUrl = parsed?.mapsUrl || 
+                          (parsed?.latitude && parsed?.longitude ? `https://maps.google.com/?q=${parsed.latitude},${parsed.longitude}` : null) ||
+                          (inspectingOrder.customerNotes?.match(/https:\/\/maps\.google\.com\/\?q=[0-9.,-]+/)?.[0] ?? null);
+
+                        return (
+                          <div className="space-y-2">
+                            {parsed && typeof parsed === "object" ? (
+                              <div className="text-xs font-bold text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
+                                {parsed.streetAddress && <p>📍 الشارع / العنوان: <span className="font-black text-slate-900">{parsed.streetAddress}</span></p>}
+                                {parsed.buildingNumber && <p>🏢 رقم العمارة: <span className="font-black text-slate-900">{parsed.buildingNumber}</span></p>}
+                                {parsed.floorDoor && <p>🚪 الدور والشقة: <span className="font-black text-slate-900">{parsed.floorDoor}</span></p>}
+                                {parsed.landmark && <p>🏛️ علامة مميزة: <span className="font-black text-slate-900">{parsed.landmark}</span></p>}
+                              </div>
+                            ) : (
+                              <span className="font-bold text-slate-800 leading-relaxed block bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                {inspectingOrder.deliveryAddressSnapshot || "استلام من الفرع"}
+                              </span>
+                            )}
+
+                            {mapsUrl && (
+                              <a
+                                href={mapsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition"
+                              >
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span>فتح موقع العميل على خرائط جوجل (GPS مباشر للمندوب) 🗺️</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {inspectingOrder.customerNotes && (

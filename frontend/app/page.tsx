@@ -31,7 +31,7 @@ export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
-  const { promoBannerActive, promoBannerText } = useStoreSettings();
+  const { promoBannerActive, promoBannerText, cakeSlides: contextCakeSlides } = useStoreSettings();
 
   // Dynamic Customer Reviews State (USER REQUEST: التحكم الكامل بآراء وتقييمات العملاء المعروضة)
   const [dynamicReviews, setDynamicReviews] = useState<ReviewItemDto[]>([]);
@@ -42,8 +42,8 @@ export default function HomePage() {
   const [custReviewSubmitting, setCustReviewSubmitting] = useState(false);
   const [custReviewSuccess, setCustReviewSuccess] = useState(false);
 
-  // Dynamic Custom Cake Showcase State (User Request: صورة ديناميك تفاعلية لتجهيز التورتة والادمن ليه كامل التخصيص فيها)
-  const DEFAULT_CAKE_SLIDES = [
+  // Dynamic Custom Cake Showcase State (Reads live from Neon database settings via context)
+  const cakeSlides = (contextCakeSlides && contextCakeSlides.length > 0) ? contextCakeSlides : [
     {
       src: "/images/custom-cake-hero.jpg",
       title: "تورتة زفاف ملكية 3 أدوار",
@@ -70,20 +70,7 @@ export default function HomePage() {
     },
   ];
 
-  const [cakeSlides, setCakeSlides] = useState(DEFAULT_CAKE_SLIDES);
   const [activeCakeSlide, setActiveCakeSlide] = useState(0);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("store_cake_slides");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCakeSlides(parsed);
-        }
-      }
-    } catch {}
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {

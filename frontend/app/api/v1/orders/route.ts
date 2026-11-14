@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { randomUUID } from 'crypto';
@@ -20,6 +23,9 @@ export async function POST(req: NextRequest) {
       paymentMethod = "CASH",
       customerNotes,
       couponCode,
+      latitude,
+      longitude,
+      mapsUrl,
     } = body;
 
     // Check idempotency
@@ -115,12 +121,16 @@ export async function POST(req: NextRequest) {
     const publicOrderNumber = `LC-${dateStr}-${rand}`;
     const trackingToken = randomUUID().replace(/-/g, '');
 
+    const derivedMapsUrl = mapsUrl || (latitude && longitude ? `https://maps.google.com/?q=${latitude},${longitude}` : null);
     const addressSnapshot = JSON.stringify({
       streetAddress: streetAddress || "",
       buildingNumber: buildingNumber || "",
       floorDoor: floorDoor || "",
       landmark: landmark || "",
       zoneId: deliveryZoneId || null,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      mapsUrl: derivedMapsUrl,
     });
 
     await sql`

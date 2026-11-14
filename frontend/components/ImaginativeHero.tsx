@@ -53,27 +53,15 @@ const DEFAULT_HERO_SLIDES = [
 ];
 
 export default function ImaginativeHero() {
-  const { heroTitle, heroSubtitle, heroBadge } = useStoreSettings();
+  const { heroTitle, heroSubtitle, heroBadge, heroSlides } = useStoreSettings();
   const [activeTopping, setActiveTopping] = useState<string>("all");
   const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic Hero Carousel State (User Request: مجموعة من الصور بتتغير كل كام ثانية والادمن ليه تحكم فيها)
-  const [slides, setSlides] = useState(DEFAULT_HERO_SLIDES);
+  // Dynamic Hero Carousel State from Neon Cloud Settings
+  const slides = heroSlides && heroSlides.length > 0 ? heroSlides : DEFAULT_HERO_SLIDES;
   const [activeSlide, setActiveSlide] = useState(0);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("store_hero_slides");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSlides(parsed);
-        }
-      }
-    } catch {}
-  }, []);
 
   useEffect(() => {
     if (isCarouselHovered) return;
