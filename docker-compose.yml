@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lolo_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lolo_cupcakes
+      POSTGRES_USER: lolo_user
+      POSTGRES_PASSWORD: lolo_secret_password
+      TZ: Africa/Cairo
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lolo_user -d lolo_cupcakes"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

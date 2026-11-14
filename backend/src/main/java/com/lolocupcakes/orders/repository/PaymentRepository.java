@@ -1,0 +1,17 @@
+package com.lolocupcakes.orders.repository;
+
+import com.lolocupcakes.orders.model.Payment;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface PaymentRepository extends JpaRepository<Payment, UUID> {
+    Optional<Payment> findByOrderId(UUID orderId);
+    List<Payment> findByStatusOrderByCreatedAtDesc(String status);
+    List<Payment> findAllByOrderByCreatedAtDesc();
+    long countByStatus(String status);
+}
