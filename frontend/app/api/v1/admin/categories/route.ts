@@ -10,12 +10,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { nameAr, nameEn, slug, displayOrder = 1, isActive = true } = body;
 
+    let finalSlug = (slug || nameAr || 'category')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s/\\?#%&]+/g, '-');
+    const existing = await sql`SELECT id FROM categories WHERE slug = ${finalSlug} LIMIT 1`;
+    if (existing.length > 0) {
+      finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
+    }
+
     const id = randomUUID();
     const [category] = await sql`
       INSERT INTO categories (
         id, slug, name_ar, name_en, display_order, is_active, created_at, updated_at
       ) VALUES (
-        ${id}, ${slug}, ${nameAr}, ${nameEn || null}, ${displayOrder}, ${isActive}, NOW(), NOW()
+        ${id}, ${finalSlug}, ${nameAr}, ${nameEn || null}, ${displayOrder}, ${isActive}, NOW(), NOW()
       )
       RETURNING id, slug, name_ar AS "nameAr", name_en AS "nameEn", display_order AS "displayOrder"
     `;

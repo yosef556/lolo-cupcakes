@@ -25,6 +25,16 @@ export async function POST(req: NextRequest) {
       primaryImageUrl,
     } = body;
 
+    // Ensure slug is unique to prevent duplicate key constraint errors
+    let finalSlug = (slug || nameAr || 'product')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s/\\?#%&]+/g, '-');
+    const existing = await sql`SELECT id FROM products WHERE slug = ${finalSlug} LIMIT 1`;
+    if (existing.length > 0) {
+      finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
+    }
+
     const id = randomUUID();
     const [product] = await sql`
       INSERT INTO products (
@@ -33,7 +43,7 @@ export async function POST(req: NextRequest) {
         stock_quantity, is_pre_order, is_active, is_featured, is_customizable,
         display_order, created_at, updated_at
       ) VALUES (
-        ${id}, ${categoryId}, ${slug}, ${nameAr}, ${nameEn || null}, ${descriptionAr || null},
+        ${id}, ${categoryId}, ${finalSlug}, ${nameAr}, ${nameEn || null}, ${descriptionAr || null},
         'CUPCAKE', 'PIECE', ${basePrice}, ${prepLeadHours},
         ${stockQuantity}, ${isPreOrder}, ${isActive}, ${isFeatured}, ${isCustomizable},
         ${displayOrder}, NOW(), NOW()
@@ -42,10 +52,17 @@ export async function POST(req: NextRequest) {
     `;
 
     if (primaryImageUrl) {
-      await sql`
-        INSERT INTO product_images (id, product_id, storage_key, public_url, is_primary, display_order, created_at)
-        VALUES (${randomUUID()}, ${id}, ${primaryImageUrl}, ${primaryImageUrl}, true, 1, NOW())
-      `;
+      try {
+        await sql`
+          INSERT INTO product_images (id, product_id, storage_key, public_url, is_primary, display_order, created_at)
+          VALUES (${randomUUID()}, ${id}, ${primaryImageUrl}, ${primaryImageUrl}, true, 1, NOW())
+        `;
+      } catch {
+        await sql`
+          INSERT INTO product_images (id, product_id, storage_key, is_primary, display_order, created_at)
+          VALUES (${randomUUID()}, ${id}, ${primaryImageUrl}, true, 1, NOW())
+        `;
+      }
     }
 
     return NextResponse.json({

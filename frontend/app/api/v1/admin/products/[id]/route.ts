@@ -50,11 +50,18 @@ export async function PUT(
     `;
 
     if (primaryImageUrl) {
-      await sql`
-        INSERT INTO product_images (id, product_id, storage_key, public_url, is_primary, display_order, created_at)
-        VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, ${primaryImageUrl}, true, 1, NOW())
-        ON CONFLICT DO NOTHING
-      `;
+      try {
+        await sql`DELETE FROM product_images WHERE product_id = ${id} AND is_primary = true`;
+        await sql`
+          INSERT INTO product_images (id, product_id, storage_key, public_url, is_primary, display_order, created_at)
+          VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, ${primaryImageUrl}, true, 1, NOW())
+        `;
+      } catch {
+        await sql`
+          INSERT INTO product_images (id, product_id, storage_key, is_primary, display_order, created_at)
+          VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, true, 1, NOW())
+        `;
+      }
     }
 
     return NextResponse.json({
