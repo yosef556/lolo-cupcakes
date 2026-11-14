@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { randomUUID } from 'crypto';
 
 export async function PUT(
   req: NextRequest,
@@ -9,13 +10,14 @@ export async function PUT(
     const { key } = params;
     const body = await req.json();
     const { value } = body;
+    const newId = randomUUID();
 
     const [updated] = await sql`
-      INSERT INTO store_settings (key, value, updated_at)
-      VALUES (${key}, ${value}, NOW())
-      ON CONFLICT (key) DO UPDATE
-      SET value = EXCLUDED.value, updated_at = NOW()
-      RETURNING key, value, description, updated_at AS "updatedAt"
+      INSERT INTO store_settings (id, setting_key, setting_value, updated_at)
+      VALUES (${newId}, ${key}, ${value}, NOW())
+      ON CONFLICT (setting_key) DO UPDATE
+      SET setting_value = EXCLUDED.setting_value, updated_at = NOW()
+      RETURNING setting_key AS key, setting_value AS value, description, updated_at AS "updatedAt"
     `;
 
     return NextResponse.json({
