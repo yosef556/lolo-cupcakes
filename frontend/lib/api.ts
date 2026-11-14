@@ -404,12 +404,13 @@ export interface ProductListResponse {
   totalPages: number;
 }
 
-export async function getProducts(params?: { categorySlug?: string; search?: string; page?: number; size?: number }): Promise<ProductListResponse> {
+export async function getProducts(params?: { categorySlug?: string; search?: string; page?: number; size?: number; includeInactive?: boolean }): Promise<ProductListResponse> {
   const query = new URLSearchParams();
   if (params?.categorySlug) query.append("category", params.categorySlug);
   if (params?.search) query.append("search", params.search);
   if (params?.page !== undefined) query.append("page", params.page.toString());
   if (params?.size !== undefined) query.append("size", params.size.toString());
+  if (params?.includeInactive !== undefined) query.append("includeInactive", params.includeInactive.toString());
 
   const res = await fetchApi<ProductListResponse>(`/products?${query.toString()}`);
   return res.data;

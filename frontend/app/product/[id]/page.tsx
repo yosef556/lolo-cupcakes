@@ -38,7 +38,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const { addToCart, closeDrawer } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
-  const { minOrderAmount } = useStoreSettings();
+  const { minOrderAmount, inactiveProductBadgeText } = useStoreSettings();
   const productId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [product, setProduct] = useState<ProductDto | null>(null);
@@ -555,49 +555,59 @@ export default function ProductDetailPage() {
 
               {/* CTAs: Add to Bag and Buy Now */}
               <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={handleAddToCart}
-                    disabled={addingToCart || (!product.isPreOrder && product.stockQuantity !== undefined && product.stockQuantity === 0)}
-                    className="w-full py-4 px-5 rounded-2xl bg-white hover:bg-pink-50 border-2 border-pink-400 text-pink-700 font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 shadow-sm"
-                  >
-                    <ShoppingBag className="w-5 h-5 text-pink-500" />
-                    <span>
-                      {!product.isPreOrder && product.stockQuantity !== undefined && product.stockQuantity === 0
-                        ? "نفدت الكمية مؤقتاً"
-                        : addingToCart
-                        ? "جاري الإضافة..."
-                        : `إضافة إلى الحقيبة (${currentTotalPrice.toFixed(2)} ج.م)`}
-                    </span>
-                  </button>
-
-                  {canDirectBuyNow ? (
+                {product.isActive === false ? (
+                  <div className="w-full p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-center space-y-1">
+                    <div className="flex items-center justify-center gap-2 font-black text-sm">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      <span>{inactiveProductBadgeText || "سيتوفر قريباً ✨"}</span>
+                    </div>
+                    <p className="text-xs text-amber-700">هذا الصنف غير متاح للطلب حالياً وسيتم توفيره مجدداً في أقرب وقت.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={handleBuyNow}
+                      onClick={handleAddToCart}
                       disabled={addingToCart || (!product.isPreOrder && product.stockQuantity !== undefined && product.stockQuantity === 0)}
-                      className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-sky-500 hover:from-pink-600 hover:to-sky-600 text-white font-black text-sm shadow-xl shadow-pink-200/60 hover:shadow-sky-200/60 transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                      className="w-full py-4 px-5 rounded-2xl bg-white hover:bg-pink-50 border-2 border-pink-400 text-pink-700 font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 shadow-sm"
                     >
-                      <Zap className="w-5 h-5 text-amber-300" />
+                      <ShoppingBag className="w-5 h-5 text-pink-500" />
                       <span>
                         {!product.isPreOrder && product.stockQuantity !== undefined && product.stockQuantity === 0
-                          ? "غير متاح للشراء"
-                          : `شراء فوري لهذا الصنف (${currentTotalPrice.toFixed(2)} ج.م) ⚡`}
+                          ? "نفدت الكمية مؤقتاً"
+                          : addingToCart
+                          ? "جاري الإضافة..."
+                          : `إضافة إلى الحقيبة (${currentTotalPrice.toFixed(2)} ج.م)`}
                       </span>
                     </button>
-                  ) : (
-                    <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-center flex flex-col justify-center">
-                      <div className="flex items-center justify-center gap-1.5 font-black text-[11px]">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span>الحد الأدنى للشراء الفوري {minOrderAmount} ج.م</span>
+
+                    {canDirectBuyNow ? (
+                      <button
+                        type="button"
+                        onClick={handleBuyNow}
+                        disabled={addingToCart || (!product.isPreOrder && product.stockQuantity !== undefined && product.stockQuantity === 0)}
+                        className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-sky-500 hover:from-pink-600 hover:to-sky-600 text-white font-black text-sm shadow-xl shadow-pink-200/60 hover:shadow-sky-200/60 transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                      >
+                        <Zap className="w-5 h-5 text-amber-300" />
+                        <span>
+                          {!product.isPreOrder && product.stockQuantity !== undefined && product.stockQuantity === 0
+                            ? "غير متاح للشراء"
+                            : `شراء فوري لهذا الصنف (${currentTotalPrice.toFixed(2)} ج.م) ⚡`}
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-center flex flex-col justify-center">
+                        <div className="flex items-center justify-center gap-1.5 font-black text-[11px]">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>الحد الأدنى للشراء الفوري {minOrderAmount} ج.م</span>
+                        </div>
+                        <p className="text-[10px] text-amber-700 mt-0.5">
+                          أضف للسلة وأكمل طلبك لتصل للحد الأدنى ({currentTotalPrice.toFixed(2)}/{minOrderAmount} ج.م)
+                        </p>
                       </div>
-                      <p className="text-[10px] text-amber-700 mt-0.5">
-                        أضف للسلة وأكمل طلبك لتصل للحد الأدنى ({currentTotalPrice.toFixed(2)}/{minOrderAmount} ج.م)
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Direct WhatsApp Order Button */}

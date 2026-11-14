@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const categorySlug = searchParams.get('category');
     const search = searchParams.get('search');
+    const includeInactive = searchParams.get('includeInactive') !== 'false';
 
     const products = await sql`
       SELECT 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN LATERAL (
         SELECT storage_key FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1
       ) img ON true
-      WHERE p.is_active = true
+      WHERE (${includeInactive} = true OR p.is_active = true)
       ORDER BY p.display_order ASC, p.created_at DESC
     `;
 

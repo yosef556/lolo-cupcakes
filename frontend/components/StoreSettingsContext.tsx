@@ -71,6 +71,29 @@ export const DEFAULT_CAKE_SLIDES: CakeSlideDto[] = [
   },
 ];
 
+export interface TasteHighlightDto {
+  label: string;
+  icon: string;
+  slideIndex: number;
+}
+
+export const DEFAULT_TASTE_HIGHLIGHTS: TasteHighlightDto[] = [
+  { label: "فراولة طازجة", icon: "🍓", slideIndex: 2 },
+  { label: "شوكولاتة بلجيكية", icon: "🍫", slideIndex: 1 },
+  { label: "زبدة نيوزيلندية", icon: "🧈", slideIndex: 0 },
+  { label: "تزيين فني يدوي", icon: "✨", slideIndex: 3 },
+];
+
+export const DEFAULT_CUSTOM_CAKE_FLAVORS: string[] = [
+  "شوكولاتة نوتيلا بلجيكية غنية",
+  "فانيليا مدغشقر وتوت أحمر",
+  "لوتس كراميل وبسكويت مقرمش",
+  "ريد فيلفيت وكريمة الجبن الإيطالية",
+  "فستق حلبي وكريمة الورد",
+  "كيندر بوينو وشوكولاتة الحليب",
+  "مانجو استوائي وفراولة طبيعية",
+];
+
 export interface StoreSettingsContextValue {
   settings: Record<string, string>;
   loading: boolean;
@@ -99,6 +122,15 @@ export interface StoreSettingsContextValue {
   storeFaviconUrl: string;
   heroSlides: HeroSlideDto[];
   cakeSlides: CakeSlideDto[];
+  inactiveProductBadgeText: string;
+  customCakeBadge: string;
+  customCakeTitle: string;
+  customCakeSubtitle: string;
+  customCakeCtaPrimary: string;
+  customCakeCtaSecondary: string;
+  customCakePriceNote: string;
+  customCakeFlavors: string[];
+  heroTasteHighlights: TasteHighlightDto[];
   refreshSettings: () => Promise<void>;
 }
 
@@ -150,6 +182,15 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue>({
   storeFaviconUrl: "/favicon.ico",
   heroSlides: DEFAULT_HERO_SLIDES,
   cakeSlides: DEFAULT_CAKE_SLIDES,
+  inactiveProductBadgeText: "سيتوفر قريباً ✨",
+  customCakeBadge: "ورشة تفصيل وتصميم التورتات الخاصة 🎂",
+  customCakeTitle: "هل لديك فكرة أو تصميم مميز؟ سنحولها لتورتة أحلامك ثلاثية الأبعاد",
+  customCakeSubtitle: "شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك، سيقوم شيف لولو كب كيك بمراجعة فكرتك وإرسال عرض سعر فني دقيق خلال وقت قياسي.",
+  customCakeCtaPrimary: "صمم واطلب تسعير تورتتك الخاصة 3D",
+  customCakeCtaSecondary: "متابعة عرض سعر سابق",
+  customCakePriceNote: "السعر التقديري المبدئي: 870 - 1230 ج.م * السعر النهائي يشمل التصميم المختار ويتم إرسال العرض المعتمد من مراجعة الشيف لولو كب كيك",
+  customCakeFlavors: DEFAULT_CUSTOM_CAKE_FLAVORS,
+  heroTasteHighlights: DEFAULT_TASTE_HIGHLIGHTS,
   refreshSettings: async () => {},
 });
 
@@ -243,6 +284,30 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
       } catch {}
     }
 
+    const inactiveProductBadgeText = settings["inactive_product_badge_text"]?.trim() || "سيتوفر قريباً ✨";
+    const customCakeBadge = settings["custom_cake_badge"]?.trim() || "ورشة تفصيل وتصميم التورتات الخاصة 🎂";
+    const customCakeTitle = settings["custom_cake_title"]?.trim() || "هل لديك فكرة أو تصميم مميز؟ سنحولها لتورتة أحلامك ثلاثية الأبعاد";
+    const customCakeSubtitle = settings["custom_cake_subtitle"]?.trim() || "شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك، سيقوم شيف لولو كب كيك بمراجعة فكرتك وإرسال عرض سعر فني دقيق خلال وقت قياسي.";
+    const customCakeCtaPrimary = settings["custom_cake_cta_primary"]?.trim() || "صمم واطلب تسعير تورتتك الخاصة 3D";
+    const customCakeCtaSecondary = settings["custom_cake_cta_secondary"]?.trim() || "متابعة عرض سعر سابق";
+    const customCakePriceNote = settings["custom_cake_price_note"]?.trim() || "السعر التقديري المبدئي: 870 - 1230 ج.م * السعر النهائي يشمل التصميم المختار ويتم إرسال العرض المعتمد من مراجعة الشيف لولو كب كيك";
+
+    let customCakeFlavors = DEFAULT_CUSTOM_CAKE_FLAVORS;
+    if (settings["custom_cake_flavors"]) {
+      try {
+        const p = JSON.parse(settings["custom_cake_flavors"]);
+        if (Array.isArray(p) && p.length > 0) customCakeFlavors = p;
+      } catch {}
+    }
+
+    let heroTasteHighlights = DEFAULT_TASTE_HIGHLIGHTS;
+    if (settings["hero_taste_highlights"]) {
+      try {
+        const p = JSON.parse(settings["hero_taste_highlights"]);
+        if (Array.isArray(p) && p.length > 0) heroTasteHighlights = p;
+      } catch {}
+    }
+
     const storeTabTitle = settings["store_tab_title"]?.trim() || (storeName ? `${storeName} | أشهى الحلويات والتورتات` : "لولو كب كيك | Lolo Cupcakes");
     const storeFaviconUrl = settings["store_favicon_url"]?.trim() || storeLogoUrl || "/favicon.ico";
 
@@ -274,6 +339,15 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
       storeFaviconUrl,
       heroSlides,
       cakeSlides,
+      inactiveProductBadgeText,
+      customCakeBadge,
+      customCakeTitle,
+      customCakeSubtitle,
+      customCakeCtaPrimary,
+      customCakeCtaSecondary,
+      customCakePriceNote,
+      customCakeFlavors,
+      heroTasteHighlights,
       refreshSettings: fetchSettings,
     };
   }, [settings, loading, fetchSettings]);

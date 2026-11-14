@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { 
   getAdminMetrics, 
@@ -241,11 +241,27 @@ export default function AdminDashboardPage() {
   const [newSlideTag, setNewSlideTag] = useState("الأكثر طلباً ★");
   const [newSlideSub, setNewSlideSub] = useState("مخبوزة طازجة اليوم بحرفية");
 
+  // Edit Hero Slide State
+  const [editingHeroSlideIdx, setEditingHeroSlideIdx] = useState<number | null>(null);
+  const [editHeroSlideSrc, setEditHeroSlideSrc] = useState("");
+  const [editHeroSlideTitle, setEditHeroSlideTitle] = useState("");
+  const [editHeroSlideTag, setEditHeroSlideTag] = useState("");
+  const [editHeroSlideSub, setEditHeroSlideSub] = useState("");
+  const [editUploadingHeroSlide, setEditUploadingHeroSlide] = useState(false);
+
   const [cakeSlidesAdmin, setCakeSlidesAdmin] = useState<Array<{ src: string; title: string; flavor: string; tiers: string }>>([]);
   const [newCakeSrc, setNewCakeSrc] = useState("");
   const [newCakeTitle, setNewCakeTitle] = useState("");
   const [newCakeFlavor, setNewCakeFlavor] = useState("");
   const [newCakeTiers, setNewCakeTiers] = useState("3 أدوار فاخرة");
+
+  // Edit Cake Slide State
+  const [editingCakeSlideIdx, setEditingCakeSlideIdx] = useState<number | null>(null);
+  const [editCakeSlideSrc, setEditCakeSlideSrc] = useState("");
+  const [editCakeSlideTitle, setEditCakeSlideTitle] = useState("");
+  const [editCakeSlideFlavor, setEditCakeSlideFlavor] = useState("");
+  const [editCakeSlideTiers, setEditCakeSlideTiers] = useState("");
+  const [editUploadingCakeSlide, setEditUploadingCakeSlide] = useState(false);
 
   // Loyalty Program Rules State (USER REQUEST: VIP Loyalty rules)
   const [loyaltyPointsPerEgp, setLoyaltyPointsPerEgp] = useState("10"); // 1 pt per 10 EGP
@@ -288,6 +304,7 @@ export default function AdminDashboardPage() {
   const [catalogProducts, setCatalogProducts] = useState<ProductDto[]>([]);
   const [catalogFilterCategory, setCatalogFilterCategory] = useState<string>("");
   const [catalogSearch, setCatalogSearch] = useState<string>("");
+  const [catalogStatusFilter, setCatalogStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
 
   // New Category Form State
   const [newCatNameAr, setNewCatNameAr] = useState("");
@@ -816,11 +833,28 @@ export default function AdminDashboardPage() {
     getProducts({
       categorySlug: catalogFilterCategory || undefined,
       search: catalogSearch || undefined,
-      size: 50,
+      size: 200,
+      includeInactive: true,
     })
       .then((res) => setCatalogProducts(res.content))
       .catch(() => setCatalogProducts([]));
   }, [catalogFilterCategory, catalogSearch]);
+
+  const displayedCatalogProducts = useMemo(() => {
+    return catalogProducts.filter((p) => {
+      if (catalogStatusFilter === "ACTIVE") return p.isActive !== false;
+      if (catalogStatusFilter === "INACTIVE") return p.isActive === false;
+      return true;
+    });
+  }, [catalogProducts, catalogStatusFilter]);
+
+  const activeCatalogCount = useMemo(() => {
+    return catalogProducts.filter((p) => p.isActive !== false).length;
+  }, [catalogProducts]);
+
+  const inactiveCatalogCount = useMemo(() => {
+    return catalogProducts.filter((p) => p.isActive === false).length;
+  }, [catalogProducts]);
 
   // Load tab data
   useEffect(() => {
@@ -1121,6 +1155,84 @@ export default function AdminDashboardPage() {
       broadcastSettingsChange();
       showToast("تم حذف شريحة التورتة بنجاح 🗑️");
     }
+  };
+
+  const handleStartEditHeroSlide = (idx: number) => {
+    const s = heroSlidesAdmin[idx];
+    if (!s) return;
+    setEditingHeroSlideIdx(idx);
+    setEditHeroSlideSrc(s.src);
+    setEditHeroSlideTitle(s.title);
+    setEditHeroSlideTag(s.tag);
+    setEditHeroSlideSub(s.sub);
+  };
+
+  const handleSaveEditHeroSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingHeroSlideIdx === null) return;
+    if (!editHeroSlideSrc.trim() || !editHeroSlideTitle.trim()) {
+      showToast("يرجى إدخال عنوان وصورة الشريحة", "error");
+      return;
+    }
+    const updated = [...heroSlidesAdmin];
+    updated[editingHeroSlideIdx] = {
+      src: editHeroSlideSrc.trim(),
+      title: editHeroSlideTitle.trim(),
+      tag: editHeroSlideTag.trim() || "مميز ★",
+      sub: editHeroSlideSub.trim() || "مخبوزة طازجة اليوم",
+    };
+    setHeroSlidesAdmin(updated);
+    try {
+      localStorage.setItem("store_hero_slides", JSON.stringify(updated));
+    } catch {}
+    try {
+      await updateStoreSetting("hero_slides", JSON.stringify(updated));
+      broadcastSettingsChange();
+      showToast("تم حفظ تعديل شريحة الهيرو بنجاح! ✨");
+    } catch {
+      broadcastSettingsChange();
+      showToast("تم تعديل الشريحة بنجاح! ✨");
+    }
+    setEditingHeroSlideIdx(null);
+  };
+
+  const handleStartEditCakeSlide = (idx: number) => {
+    const s = cakeSlidesAdmin[idx];
+    if (!s) return;
+    setEditingCakeSlideIdx(idx);
+    setEditCakeSlideSrc(s.src);
+    setEditCakeSlideTitle(s.title);
+    setEditCakeSlideFlavor(s.flavor);
+    setEditCakeSlideTiers(s.tiers);
+  };
+
+  const handleSaveEditCakeSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingCakeSlideIdx === null) return;
+    if (!editCakeSlideSrc.trim() || !editCakeSlideTitle.trim()) {
+      showToast("يرجى إدخال عنوان وصورة الشريحة", "error");
+      return;
+    }
+    const updated = [...cakeSlidesAdmin];
+    updated[editingCakeSlideIdx] = {
+      src: editCakeSlideSrc.trim(),
+      title: editCakeSlideTitle.trim(),
+      flavor: editCakeSlideFlavor.trim() || "مكونات طبيعية فاخرة",
+      tiers: editCakeSlideTiers.trim() || "تورتة مخصصة 3D",
+    };
+    setCakeSlidesAdmin(updated);
+    try {
+      localStorage.setItem("store_cake_slides", JSON.stringify(updated));
+    } catch {}
+    try {
+      await updateStoreSetting("cake_slides", JSON.stringify(updated));
+      broadcastSettingsChange();
+      showToast("تم حفظ تعديل شريحة تورتة العرض بنجاح! 🎂");
+    } catch {
+      broadcastSettingsChange();
+      showToast("تم تعديل الشريحة بنجاح! 🎂");
+    }
+    setEditingCakeSlideIdx(null);
   };
 
   // Order Accept & Reject Handlers (USER REQUEST: قبول الطلب ورفض الطلب مع سبب الرفض)
@@ -2700,7 +2812,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Filters */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={catalogFilterCategory}
                   onChange={(e) => setCatalogFilterCategory(e.target.value)}
@@ -2724,6 +2836,54 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* Quick Status Filter Tabs (USER REQUEST: فلترة الأصناف النشطة والمعطلة) */}
+            <div className="flex items-center gap-2 border-b border-rose-100 pb-3 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setCatalogStatusFilter("ALL")}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap ${
+                  catalogStatusFilter === "ALL"
+                    ? "bg-rose-500 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-rose-50"
+                }`}
+              >
+                <span>جميع الأصناف</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/30 text-current">
+                  {catalogProducts.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCatalogStatusFilter("ACTIVE")}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap ${
+                  catalogStatusFilter === "ACTIVE"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                }`}
+              >
+                <span>الأصناف النشطة 🟢</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/30 text-current">
+                  {activeCatalogCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCatalogStatusFilter("INACTIVE")}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap ${
+                  catalogStatusFilter === "INACTIVE"
+                    ? "bg-red-600 text-white shadow-sm"
+                    : "bg-red-50 text-red-800 hover:bg-red-100"
+                }`}
+              >
+                <span>المعطلة وغير المتوفرة 🔴</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/30 text-current">
+                  {inactiveCatalogCount}
+                </span>
+              </button>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
                 <thead>
@@ -2740,8 +2900,15 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rose-50">
-                  {catalogProducts.map((p) => (
-                    <tr key={p.id} className="hover:bg-rose-50/30 transition">
+                  {displayedCatalogProducts.map((p) => (
+                    <tr 
+                      key={p.id} 
+                      className={`transition ${
+                        p.isActive === false 
+                          ? "bg-red-50/40 hover:bg-red-50/70 border-r-4 border-r-red-500" 
+                          : "hover:bg-rose-50/30"
+                      }`}
+                    >
                       <td className="py-2.5 px-4">
                         <div className="w-12 h-12 rounded-xl border border-rose-200 overflow-hidden relative bg-rose-50/50 flex items-center justify-center shrink-0 shadow-xs">
                           {p.primaryImageUrl ? (
@@ -2774,9 +2941,9 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          p.isActive !== false ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-gray-100 text-gray-500 border border-gray-200"
+                          p.isActive !== false ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-100 text-red-700 border border-red-300 font-black inline-flex items-center gap-1"
                         }`}>
-                          {p.isActive !== false ? "نشط" : "معطل"}
+                          {p.isActive !== false ? "نشط 🟢" : "معطل 🔴"}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -5385,14 +5552,24 @@ export default function AdminDashboardPage() {
                       <h4 className="font-black text-xs text-slate-900 line-clamp-1">{slide.title}</h4>
                       <p className="text-[11px] text-slate-500 line-clamp-1">{slide.sub}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteHeroSlide(idx)}
-                      className="w-full py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-bold transition flex items-center justify-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>حذف الشريحة</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditHeroSlide(idx)}
+                        className="flex-1 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-sky-200 shadow-2xs"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>تعديل</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHeroSlide(idx)}
+                        className="flex-1 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-red-200 shadow-2xs"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -5506,14 +5683,24 @@ export default function AdminDashboardPage() {
                   <div className="p-3.5 space-y-2">
                     <h4 className="font-black text-xs text-slate-900">{slide.title}</h4>
                     <p className="text-[11px] text-slate-500">{slide.flavor}</p>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCakeSlide(idx)}
-                      className="w-full py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-bold transition flex items-center justify-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>حذف الصورة</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditCakeSlide(idx)}
+                        className="flex-1 py-1.5 rounded-xl bg-pink-50 text-pink-700 hover:bg-pink-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-pink-200 shadow-2xs"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>تعديل</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCakeSlide(idx)}
+                        className="flex-1 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-red-200 shadow-2xs"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -5603,6 +5790,232 @@ export default function AdminDashboardPage() {
               </div>
             </form>
           </div>
+
+          {/* Edit Hero Slide Modal (USER REQUEST: تعديل شرائح الهيرو مع رفع مباشر من الجهاز) */}
+          {editingHeroSlideIdx !== null && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-rose-200 animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Pencil className="w-5 h-5 text-rose-500" />
+                    <h3 className="font-black text-base text-slate-900">تعديل شريحة الهيرو (شريحة #{editingHeroSlideIdx + 1})</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingHeroSlideIdx(null)}
+                    className="p-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveEditHeroSlide} className="space-y-4 text-xs">
+                  {/* Image Upload and Preview */}
+                  <div className="space-y-2">
+                    <label className="font-bold text-slate-700 block">صورة الشريحة (رفع من جهازك مباشرة أو رابط) 🖼️ *:</label>
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 font-bold text-xs text-rose-700 transition shadow-sm">
+                        <Upload className="w-4 h-4 text-rose-500" />
+                        <span>{editUploadingHeroSlide ? "جاري معالجة الصورة..." : "اختر صورة جديدة من جهازك 📁"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={editUploadingHeroSlide}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setEditUploadingHeroSlide(true);
+                            try {
+                              const res = await compressAndGetUrl(file, 1280, 0.85);
+                              setEditHeroSlideSrc(res);
+                              showToast("تم تحديث صورة الشريحة بنجاح! 📸");
+                            } catch (err: unknown) {
+                              const error = err as Error;
+                              showToast(error.message || "فشل معالجة الصورة", "error");
+                            } finally {
+                              setEditUploadingHeroSlide(false);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {editHeroSlideSrc && (
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden relative border-2 border-rose-400 shrink-0 bg-slate-100 shadow-md">
+                          <Image src={editHeroSlideSrc} alt="معاينة" fill className="object-cover" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي للشريحة *:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="تشكيلة الكب كيك الفاخر"
+                      value={editHeroSlideTitle}
+                      onChange={(e) => setEditHeroSlideTitle(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 font-bold focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">شارة العرض (Badge):</label>
+                    <input
+                      type="text"
+                      placeholder="الأكثر طلباً ★"
+                      value={editHeroSlideTag}
+                      onChange={(e) => setEditHeroSlideTag(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">الوصف الفرعي للشريحة:</label>
+                    <input
+                      type="text"
+                      placeholder="مخبوزة طازجة اليوم بحرفية ومكونات طبيعية"
+                      value={editHeroSlideSub}
+                      onChange={(e) => setEditHeroSlideSub(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-rose-100">
+                    <button
+                      type="button"
+                      onClick={() => setEditingHeroSlideIdx(null)}
+                      className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold transition"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editUploadingHeroSlide || !editHeroSlideSrc.trim()}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black transition shadow-md hover:brightness-105 disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>حفظ التعديلات 💾</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Cake Slide Modal (USER REQUEST: تعديل شرائح تورتات العرض مع رفع مباشر من الجهاز) */}
+          {editingCakeSlideIdx !== null && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-pink-200 animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-pink-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Cake className="w-5 h-5 text-pink-500" />
+                    <h3 className="font-black text-base text-slate-900">تعديل تورتة المعرض (شريحة #{editingCakeSlideIdx + 1})</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingCakeSlideIdx(null)}
+                    className="p-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveEditCakeSlide} className="space-y-4 text-xs">
+                  {/* Image Upload and Preview */}
+                  <div className="space-y-2">
+                    <label className="font-bold text-slate-700 block">صورة التورتة (رفع من جهازك مباشرة أو رابط) 🎂 *:</label>
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-300 font-bold text-xs text-pink-700 transition shadow-sm">
+                        <Upload className="w-4 h-4 text-pink-500" />
+                        <span>{editUploadingCakeSlide ? "جاري معالجة الصورة..." : "اختر صورة جديدة للتورتة 📁"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={editUploadingCakeSlide}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setEditUploadingCakeSlide(true);
+                            try {
+                              const res = await compressAndGetUrl(file, 1280, 0.85);
+                              setEditCakeSlideSrc(res);
+                              showToast("تم تحديث صورة التورتة بنجاح! 🎂");
+                            } catch (err: unknown) {
+                              const error = err as Error;
+                              showToast(error.message || "فشل معالجة الصورة", "error");
+                            } finally {
+                              setEditUploadingCakeSlide(false);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {editCakeSlideSrc && (
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden relative border-2 border-pink-400 shrink-0 bg-slate-100 shadow-md">
+                          <Image src={editCakeSlideSrc} alt="معاينة" fill className="object-cover" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">اسم / عنوان التورتة *:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="تورتة زفاف ملكية 3 أدوار"
+                      value={editCakeSlideTitle}
+                      onChange={(e) => setEditCakeSlideTitle(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 font-bold focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">النكهة والحشوة:</label>
+                    <input
+                      type="text"
+                      placeholder="فانيليا مدغشقر وتوت أحمر"
+                      value={editCakeSlideFlavor}
+                      onChange={(e) => setEditCakeSlideFlavor(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">عدد الأدوار / الفئة (Badge):</label>
+                    <input
+                      type="text"
+                      placeholder="3 أدوار فاخرة"
+                      value={editCakeSlideTiers}
+                      onChange={(e) => setEditCakeSlideTiers(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-pink-100">
+                    <button
+                      type="button"
+                      onClick={() => setEditingCakeSlideIdx(null)}
+                      className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold transition"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editUploadingCakeSlide || !editCakeSlideSrc.trim()}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 text-white font-black transition shadow-md hover:brightness-105 disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>حفظ التعديلات 💾</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -5960,6 +6373,360 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Post 2 Customization Card (USER REQUEST: التحكم الكامل بالبوست الثاني - ورشة التورتات 3D Section 5) */}
+          <div className="bg-gradient-to-br from-pink-50/50 via-white to-rose-50/50 p-6 sm:p-8 rounded-3xl border border-pink-200 shadow-sm space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-pink-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-600 to-rose-600 text-white flex items-center justify-center shadow-md">
+                  <Cake className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-black text-lg text-slate-900">تخصيص البوست الثاني (ورشة التورتات الخاصة ثلاثية الأبعاد 3D - Section 5)</h4>
+                  <p className="text-xs text-slate-500">تحكم كامل بنصوص وعناوين وأزرار القسم التفاعلي لتفصيل التورتات في الصفحة الرئيسية</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">شارة القسم (Badge):</label>
+                <input
+                  type="text"
+                  placeholder="ورشة تفصيل وتصميم التورتات الخاصة 🎂"
+                  value={editingSettings["custom_cake_badge"] ?? (settings.find((s) => s.key === "custom_cake_badge")?.value || "ورشة تفصيل وتصميم التورتات الخاصة 🎂")}
+                  onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_badge: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">نص الزر الأساسي (Primary CTA):</label>
+                <input
+                  type="text"
+                  placeholder="صمم واطلب تسعير تورتتك الخاصة 3D"
+                  value={editingSettings["custom_cake_cta_primary"] ?? (settings.find((s) => s.key === "custom_cake_cta_primary")?.value || "صمم واطلب تسعير تورتتك الخاصة 3D")}
+                  onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_cta_primary: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold text-pink-600"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي للبوست الثاني (Title) *:</label>
+                <input
+                  type="text"
+                  placeholder="هل لديك فكرة أو تصميم مميز؟ سنحولها لتورتة أحلامك ثلاثية الأبعاد"
+                  value={editingSettings["custom_cake_title"] ?? (settings.find((s) => s.key === "custom_cake_title")?.value || "هل لديك فكرة أو تصميم مميز؟ سنحولها لتورتة أحلامك ثلاثية الأبعاد")}
+                  onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold text-slate-900"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="font-bold text-slate-700 block mb-1">النص الوصفي التوضيحي (Subtitle):</label>
+                <textarea
+                  rows={2}
+                  placeholder="شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك..."
+                  value={editingSettings["custom_cake_subtitle"] ?? (settings.find((s) => s.key === "custom_cake_subtitle")?.value || "شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك. سيقوم شيف لولو كب كيك بمراجعة فكرتك وإرسال عرض سعر فني دقيق خلال وقت قياسي.")}
+                  onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_subtitle: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">نص الزر الثانوي (Secondary CTA):</label>
+                <input
+                  type="text"
+                  placeholder="متابعة عرض سعر سابق"
+                  value={editingSettings["custom_cake_cta_secondary"] ?? (settings.find((s) => s.key === "custom_cake_cta_secondary")?.value || "متابعة عرض سعر سابق")}
+                  onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_cta_secondary: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-medium"
+                />
+              </div>
+
+              <div className="flex items-end justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleSaveSetting("custom_cake_badge");
+                    await handleSaveSetting("custom_cake_title");
+                    await handleSaveSetting("custom_cake_subtitle");
+                    await handleSaveSetting("custom_cake_cta_primary");
+                    await handleSaveSetting("custom_cake_cta_secondary");
+                    showToast("تم حفظ جميع نصوص وتفاصيل البوست الثاني (ورشة التورتات) بنجاح! ✨");
+                  }}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white text-xs font-black rounded-xl hover:brightness-105 transition shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>حفظ تفاصيل البوست الثاني بالكامل 💾</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Hero Highlights & Product Availability Settings */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Box: Inactive Product Badge & Custom Cake Price Note */}
+            <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
+                <Sparkles className="w-5 h-5 text-rose-500" />
+                <h4 className="font-black text-sm text-slate-900">نصوص التوفر والسعر التقديري للتورتة</h4>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    عبارة المنتج المعطل بالمتجر (Inactive Product Badge) 🕒:
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-1.5">
+                    الكلمة التي تظهر على المنتجات المعطلة في المتجر وصفحة المنتج (مثال: سيتوفر قريباً ✨ أو غير متوفر حالياً)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="سيتوفر قريباً ✨"
+                      value={editingSettings["inactive_product_badge_text"] ?? (settings.find((s) => s.key === "inactive_product_badge_text")?.value || "سيتوفر قريباً ✨")}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, inactive_product_badge_text: e.target.value })}
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 font-bold"
+                    />
+                    <button
+                      type="button"
+                      disabled={savingSettingKey === "inactive_product_badge_text"}
+                      onClick={() => handleSaveSetting("inactive_product_badge_text")}
+                      className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                    >
+                      {savingSettingKey === "inactive_product_badge_text" ? "جاري..." : "حفظ"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-rose-50">
+                  <label className="font-bold text-slate-700 block mb-1">
+                    جملة وملاحظة السعر التقديري للتورتة المخصصة 🎂:
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-1.5">
+                    النص التوضيحي الذي يظهر تحت السعر المبدئي في ورشة تفصيل التورتة 3D
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="* السعر التقديري يشمل التصميم المختار، ويتم إرسال العرض المعتمد فور مراجعة الشيف لدرجة تعقيد التنفيذ."
+                      value={editingSettings["custom_cake_price_note"] ?? (settings.find((s) => s.key === "custom_cake_price_note")?.value || "* السعر التقديري يشمل التصميم المختار، ويتم إرسال العرض المعتمد فور مراجعة الشيف لدرجة تعقيد التنفيذ.")}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_price_note: e.target.value })}
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 font-medium text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      disabled={savingSettingKey === "custom_cake_price_note"}
+                      onClick={() => handleSaveSetting("custom_cake_price_note")}
+                      className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                    >
+                      {savingSettingKey === "custom_cake_price_note" ? "جاري..." : "حفظ"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Box: Custom Cake Flavors Editor */}
+            <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Cake className="w-5 h-5 text-rose-500" />
+                  <h4 className="font-black text-sm text-slate-900">نكهات وحشوات التورتة المتاحة للطلب</h4>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <p className="text-[11px] text-slate-500">
+                  النكهات التي تظهر في قائمة اختيار النكهة بصفحة تفصيل التورتة (يضاف إليها خيار &quot;أخرى&quot; تلقائياً للعميل لكتابة نكهته الخاصة):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(() => {
+                    const raw = editingSettings["custom_cake_flavors"] ?? (settings.find((s) => s.key === "custom_cake_flavors")?.value || "[]");
+                    let flvs: string[] = [];
+                    try {
+                      flvs = JSON.parse(raw);
+                    } catch {
+                      flvs = ["شوكولاتة نوتيلا فاخرة", "ريد فيلفيت مع كريمة الجبن", "فانيليا مدغشقر مع توت بري", "فستق حلبي مع مستكة", "لوتس كراميل مقرمش"];
+                    }
+                    if (!Array.isArray(flvs) || flvs.length === 0) {
+                      flvs = ["شوكولاتة نوتيلا فاخرة", "ريد فيلفيت مع كريمة الجبن", "فانيليا مدغشقر مع توت بري", "فستق حلبي مع مستكة", "لوتس كراميل مقرمش"];
+                    }
+                    return flvs.map((flv, idx) => (
+                      <span key={idx} className="px-3 py-1.5 rounded-xl bg-pink-50 text-pink-700 border border-pink-200 font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs">
+                        <span>{flv}</span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const updated = flvs.filter((_, i) => i !== idx);
+                            setEditingSettings((prev) => ({ ...prev, custom_cake_flavors: JSON.stringify(updated) }));
+                            await updateStoreSetting("custom_cake_flavors", JSON.stringify(updated));
+                            broadcastSettingsChange();
+                            showToast("تم حذف النكهة بنجاح 🗑️");
+                          }}
+                          className="text-pink-400 hover:text-red-600 transition"
+                          title="حذف هذه النكهة"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ));
+                  })()}
+                </div>
+
+                {/* Add new flavor input */}
+                <div className="pt-2 flex items-center gap-2">
+                  <input
+                    type="text"
+                    id="new-cake-flavor-input"
+                    placeholder="اكتب اسم نكهة جديدة (مثال: مانجو فريش وكريمة)..."
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 text-xs font-bold"
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const input = e.currentTarget;
+                        const val = input.value.trim();
+                        if (!val) return;
+                        const raw = editingSettings["custom_cake_flavors"] ?? (settings.find((s) => s.key === "custom_cake_flavors")?.value || "[]");
+                        let flvs: string[] = [];
+                        try { flvs = JSON.parse(raw); } catch { flvs = []; }
+                        if (!flvs.includes(val)) {
+                          const updated = [...flvs, val];
+                          setEditingSettings((prev) => ({ ...prev, custom_cake_flavors: JSON.stringify(updated) }));
+                          await updateStoreSetting("custom_cake_flavors", JSON.stringify(updated));
+                          broadcastSettingsChange();
+                          input.value = "";
+                          showToast("تمت إضافة النكهة بنجاح! ✨");
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const input = document.getElementById("new-cake-flavor-input") as HTMLInputElement;
+                      if (!input || !input.value.trim()) return;
+                      const val = input.value.trim();
+                      const raw = editingSettings["custom_cake_flavors"] ?? (settings.find((s) => s.key === "custom_cake_flavors")?.value || "[]");
+                      let flvs: string[] = [];
+                      try { flvs = JSON.parse(raw); } catch { flvs = []; }
+                      if (!flvs.includes(val)) {
+                        const updated = [...flvs, val];
+                        setEditingSettings((prev) => ({ ...prev, custom_cake_flavors: JSON.stringify(updated) }));
+                        await updateStoreSetting("custom_cake_flavors", JSON.stringify(updated));
+                        broadcastSettingsChange();
+                        input.value = "";
+                        showToast("تمت إضافة النكهة بنجاح! ✨");
+                      }
+                    }}
+                    className="px-4 py-2 bg-pink-600 text-white text-xs font-bold rounded-xl hover:bg-pink-700 transition"
+                  >
+                    + إضافة النكهة
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Dedicated Taste Highlights Manager (USER REQUEST: التحكم بجمل سر مذاقنا الطبيعي وربطها بالشرائح) */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <h4 className="font-black text-sm text-slate-900">
+                  كلمات وجمل &quot;سر مذاقنا الطبيعي 100%&quot; وربطها التفاعلي بشرائح السلايدر
+                </h4>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              عند ضغط العميل على أي كلمة في الهيرو بالصفحة الرئيسية ينتقل السلايدر فورياً للشريحة المرتبطة بها (0 تعني الشريحة الأولى، 1 الثانية، وهكذا):
+            </p>
+
+            <div className="space-y-3">
+              {(() => {
+                const raw = editingSettings["hero_taste_highlights"] ?? (settings.find((s) => s.key === "hero_taste_highlights")?.value || "[]");
+                let chips: Array<{ title: string; desc: string; slideIndex: number; icon: string }> = [];
+                try {
+                  chips = JSON.parse(raw);
+                } catch {
+                  chips = [
+                    { title: "زبدة نيوزيلندية طبيعية 100%", desc: "قوام غني ونكهة مخبوزات أصيلة تذوب بالفم", slideIndex: 0, icon: "🧈" },
+                    { title: "شوكولاتة بلجيكية فاخرة", desc: "نقاء 70% كاكاو مع كريمة غنية وسلسة", slideIndex: 1, icon: "🍫" },
+                    { title: "فانيليا مدغشقر الطبيعية", desc: "أعواد فانيليا بوربون الأصلية بدون أي نكهات صناعية", slideIndex: 2, icon: "🌿" },
+                    { title: "توت وفراولة فريش يومياً", desc: "فواكه طبيعية طازجة منتقاة بعناية كل صباح", slideIndex: 3, icon: "🍓" },
+                  ];
+                }
+                if (!Array.isArray(chips) || chips.length === 0) {
+                  chips = [
+                    { title: "زبدة نيوزيلندية طبيعية 100%", desc: "قوام غني ونكهة مخبوزات أصيلة تذوب بالفم", slideIndex: 0, icon: "🧈" },
+                    { title: "شوكولاتة بلجيكية فاخرة", desc: "نقاء 70% كاكاو مع كريمة غنية وسلسة", slideIndex: 1, icon: "🍫" },
+                    { title: "فانيليا مدغشقر الطبيعية", desc: "أعواد فانيليا بوربون الأصلية بدون أي نكهات صناعية", slideIndex: 2, icon: "🌿" },
+                    { title: "توت وفراولة فريش يومياً", desc: "فواكه طبيعية طازجة منتقاة بعناية كل صباح", slideIndex: 3, icon: "🍓" },
+                  ];
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {chips.map((chip, cIdx) => (
+                      <div key={cIdx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-slate-800 text-xs flex items-center gap-1.5">
+                            <span>{chip.icon || "✨"}</span>
+                            <span>{chip.title}</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-lg bg-sky-100 text-sky-800 font-bold text-[10px]">
+                            مرتبط بالشريحة رقم #{chip.slideIndex + 1}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">{chip.desc}</p>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200">
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <label className="text-slate-500 font-bold">تغيير الشريحة:</label>
+                            <select
+                              value={chip.slideIndex}
+                              onChange={async (e) => {
+                                const newIdx = parseInt(e.target.value) || 0;
+                                const updated = [...chips];
+                                updated[cIdx].slideIndex = newIdx;
+                                setEditingSettings((prev) => ({ ...prev, hero_taste_highlights: JSON.stringify(updated) }));
+                                await updateStoreSetting("hero_taste_highlights", JSON.stringify(updated));
+                                broadcastSettingsChange();
+                                showToast("تم تحديث ربط الشريحة بنجاح! ✨");
+                              }}
+                              className="px-2 py-1 rounded-lg border border-slate-300 bg-white font-bold text-xs"
+                            >
+                              {heroSlidesAdmin.map((_, hIdx) => (
+                                <option key={hIdx} value={hIdx}>
+                                  شريحة #{hIdx + 1}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const updated = chips.filter((_, i) => i !== cIdx);
+                              setEditingSettings((prev) => ({ ...prev, hero_taste_highlights: JSON.stringify(updated) }));
+                              await updateStoreSetting("hero_taste_highlights", JSON.stringify(updated));
+                              broadcastSettingsChange();
+                              showToast("تم حذف الجملة بنجاح 🗑️");
+                            }}
+                            className="text-red-500 hover:text-red-700 font-bold text-[11px]"
+                          >
+                            حذف 🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

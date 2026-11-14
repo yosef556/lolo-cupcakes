@@ -23,7 +23,20 @@ import {
 } from "lucide-react";
 
 export default function CustomCakeRequestPage() {
-  const { cleanWhatsAppNumber } = useStoreSettings();
+  const { cleanWhatsAppNumber, customCakeFlavors, customCakePriceNote } = useStoreSettings();
+
+  const availableFlavors = useMemo(() => {
+    if (Array.isArray(customCakeFlavors) && customCakeFlavors.length > 0) {
+      return customCakeFlavors;
+    }
+    return [
+      "شوكولاتة نوتيلا فاخرة",
+      "ريد فيلفيت مع كريمة الجبن",
+      "فانيليا مدغشقر مع توت بري",
+      "فستق حلبي مع مستكة",
+      "لوتس كراميل مقرمش",
+    ];
+  }, [customCakeFlavors]);
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -35,6 +48,7 @@ export default function CustomCakeRequestPage() {
   });
   const [servingsNeeded, setServingsNeeded] = useState<number>(15);
   const [flavorPreference, setFlavorPreference] = useState("شوكولاتة نوتيلا فاخرة");
+  const [customFlavorText, setCustomFlavorText] = useState("");
   const [cakeShape, setCakeShape] = useState<"ROUND" | "HEART" | "SQUARE">("ROUND");
   const [messageOnCake, setMessageOnCake] = useState("");
   const [notes, setNotes] = useState("");
@@ -55,6 +69,18 @@ export default function CustomCakeRequestPage() {
   const [copied, setCopied] = useState(false);
 
   const flavorVisuals = useMemo(() => {
+    if (flavorPreference === "OTHER") {
+      return {
+        name: customFlavorText.trim() || "نكهة مخصصة بالطلب",
+        topColor: "#FCE4EC",
+        bodyGradient: "from-rose-400 via-pink-400 to-rose-500",
+        sideShadow: "#C2185B",
+        dripColor: "#FFFFFF",
+        pipingColor: "#89CFF0",
+        accentBadge: customFlavorText.trim() ? `نكهة خاصة: ${customFlavorText.trim()} ✨` : "نكهة مخصصة بالطلب ✨",
+        glow: "rgba(255, 77, 121, 0.4)",
+      };
+    }
     switch (flavorPreference) {
       case "شوكولاتة نوتيلا فاخرة":
         return {
@@ -113,17 +139,17 @@ export default function CustomCakeRequestPage() {
         };
       default:
         return {
-          name: "تورتة لولو الوردية الفاخرة",
+          name: flavorPreference || "تورتة لولو الوردية الفاخرة",
           topColor: "#FCE4EC",
           bodyGradient: "from-rose-400 via-pink-400 to-rose-500",
           sideShadow: "#C2185B",
           dripColor: "#FFFFFF",
           pipingColor: "#89CFF0",
-          accentBadge: "خلطة الشيف الخاصة ✨",
+          accentBadge: `${flavorPreference} ✨`,
           glow: "rgba(255, 77, 121, 0.4)",
         };
     }
-  }, [flavorPreference]);
+  }, [flavorPreference, customFlavorText]);
 
   const estimatedPriceRange = useMemo(() => {
     let baseMin = 650;
@@ -167,11 +193,15 @@ export default function CustomCakeRequestPage() {
     setSubmitting(true);
     setError(null);
 
+    const effectiveFlavor = flavorPreference === "OTHER"
+      ? (customFlavorText.trim() ? `نكهة خاصة: ${customFlavorText.trim()}` : "نكهة خاصة بالطلب")
+      : flavorPreference;
+
     // Build comprehensive specifications note
     const specsNote = [
       `[الشكل: ${cakeShape === "ROUND" ? "دائري كلاسيك" : cakeShape === "HEART" ? "قلب رومانسي" : "مربع عصري"}]`,
       `[عدد الأدوار: ${selectedTiers} دور]`,
-      `[النكهة: ${flavorPreference}]`,
+      `[النكهة: ${effectiveFlavor}]`,
       hasMacarons ? "[إضافة ماكرون فرنسي]" : "",
       hasBerries ? "[إضافة توت وفواكه طبيعية]" : "",
       hasGoldLeaf ? "[إضافة أوراق الذهب الغذائية]" : "",
@@ -186,7 +216,7 @@ export default function CustomCakeRequestPage() {
           customerEmail: customerEmail.trim() || undefined,
           requestedDate,
           servingsNeeded,
-          flavorPreference,
+          flavorPreference: effectiveFlavor,
           messageOnCake: messageOnCake.trim() || undefined,
           notes: specsNote,
         },
@@ -207,14 +237,14 @@ export default function CustomCakeRequestPage() {
       
       {/* Page Header */}
       <div className="text-right space-y-2">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-black bg-[#E8F6FC] text-[#5BBBE7] border border-[#CEECFA]">
-          <Sparkles className="w-3.5 h-3.5 text-[#5BBBE7]" />
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-black bg-[#E8F6FC] dark:bg-sky-950/50 text-[#5BBBE7] dark:text-sky-300 border border-[#CEECFA] dark:border-sky-800">
+          <Sparkles className="w-3.5 h-3.5 text-[#5BBBE7] dark:text-sky-300" />
           <span>ورشة تفصيل تورتات المناسبات الملكية ثلاثية الأبعاد 🎂</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-900">
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
           صمم تورتة أحلامك الخاصة مع شيف لولو
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 max-w-3xl leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
           خصص حجم وشكل ونكهة وإضافات التورتة التفاعلية وشاهد المعاينة الحية الفورية لأدق تفاصيلها قبل إرسال طلب التسعير المباشر لمطبخنا.
         </p>
       </div>
@@ -225,11 +255,13 @@ export default function CustomCakeRequestPage() {
         <div className={`lg:col-span-5 p-6 rounded-[36px] border shadow-luxury space-y-6 sticky top-24 transition-colors duration-500 ${
           isNightMode 
             ? "bg-slate-900 border-slate-700 text-white" 
-            : "bg-white border-rose-100 text-slate-900"
+            : "bg-white dark:bg-slate-900 border-rose-100 dark:border-slate-800 text-slate-900 dark:text-white"
         }`}>
           
           {/* Header Controls */}
-          <div className="flex items-center justify-between border-b pb-3 border-rose-100/50">
+          <div className={`flex items-center justify-between border-b pb-3 ${
+            isNightMode ? "border-slate-800" : "border-rose-100/50 dark:border-slate-800"
+          }`}>
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-rose-500" />
               <h3 className="font-black text-sm">المعاينة الحية للتورتة (Live 3D Preview)</h3>
@@ -242,7 +274,7 @@ export default function CustomCakeRequestPage() {
                 className={`p-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1 transition ${
                   isNightMode 
                     ? "bg-amber-400/20 text-amber-300 border-amber-400/40" 
-                    : "bg-slate-100 text-slate-600 border-slate-200"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                 }`}
                 title="أجواء الاحتفال الليلية"
               >
@@ -254,7 +286,11 @@ export default function CustomCakeRequestPage() {
               <button
                 type="button"
                 onClick={() => setRotateAngle((prev) => (prev + 45) % 360)}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                className={`p-1.5 rounded-xl transition ${
+                  isNightMode
+                    ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                    : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-transparent dark:border-slate-700"
+                }`}
                 title="تدوير زاوية العرض"
               >
                 <RotateCw className="w-4 h-4" />
@@ -438,8 +474,8 @@ export default function CustomCakeRequestPage() {
                     }}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                       selectedTiers === tierNum
-                        ? "bg-rose-50 border-rose-500 text-rose-600 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-rose-50/50"
+                        ? (isNightMode ? "bg-rose-950/70 border-rose-500 text-rose-300 shadow-sm" : "bg-rose-50 dark:bg-rose-950/70 border-rose-500 text-rose-600 dark:text-rose-300 shadow-sm")
+                        : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/50 dark:hover:bg-slate-700")
                     }`}
                   >
                     <span>{tierNum}</span>
@@ -458,8 +494,8 @@ export default function CustomCakeRequestPage() {
                   onClick={() => setCakeShape("ROUND")}
                   className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                     cakeShape === "ROUND"
-                      ? "bg-rose-50 border-rose-500 text-rose-600 shadow-sm"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-rose-50/50"
+                      ? (isNightMode ? "bg-rose-950/70 border-rose-500 text-rose-300 shadow-sm" : "bg-rose-50 dark:bg-rose-950/70 border-rose-500 text-rose-600 dark:text-rose-300 shadow-sm")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/50 dark:hover:bg-slate-700")
                   }`}
                 >
                   <Circle className="w-3.5 h-3.5" />
@@ -471,8 +507,8 @@ export default function CustomCakeRequestPage() {
                   onClick={() => setCakeShape("HEART")}
                   className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                     cakeShape === "HEART"
-                      ? "bg-rose-50 border-rose-500 text-rose-600 shadow-sm"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-rose-50/50"
+                      ? (isNightMode ? "bg-rose-950/70 border-rose-500 text-rose-300 shadow-sm" : "bg-rose-50 dark:bg-rose-950/70 border-rose-500 text-rose-600 dark:text-rose-300 shadow-sm")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/50 dark:hover:bg-slate-700")
                   }`}
                 >
                   <Heart className="w-3.5 h-3.5 text-rose-500" />
@@ -484,8 +520,8 @@ export default function CustomCakeRequestPage() {
                   onClick={() => setCakeShape("SQUARE")}
                   className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                     cakeShape === "SQUARE"
-                      ? "bg-rose-50 border-rose-500 text-rose-600 shadow-sm"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-rose-50/50"
+                      ? (isNightMode ? "bg-rose-950/70 border-rose-500 text-rose-300 shadow-sm" : "bg-rose-50 dark:bg-rose-950/70 border-rose-500 text-rose-600 dark:text-rose-300 shadow-sm")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/50 dark:hover:bg-slate-700")
                   }`}
                 >
                   <Square className="w-3.5 h-3.5" />
@@ -502,58 +538,70 @@ export default function CustomCakeRequestPage() {
                   type="button"
                   onClick={() => setHasCandles(!hasCandles)}
                   className={`p-2 rounded-xl border font-bold flex items-center justify-between transition ${
-                    hasCandles ? "bg-amber-50 border-amber-300 text-amber-800" : "bg-slate-50 border-slate-200 text-slate-500"
+                    hasCandles
+                      ? (isNightMode ? "bg-amber-950/60 border-amber-500/50 text-amber-300" : "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-500/50 text-amber-800 dark:text-amber-300")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400")
                   }`}
                 >
                   <span>🕯️ شموع الاحتفال</span>
-                  {hasCandles && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                  {hasCandles && <Check className="w-3.5 h-3.5 text-amber-500" />}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setHasMacarons(!hasMacarons)}
                   className={`p-2 rounded-xl border font-bold flex items-center justify-between transition ${
-                    hasMacarons ? "bg-pink-50 border-pink-300 text-pink-800" : "bg-slate-50 border-slate-200 text-slate-500"
+                    hasMacarons
+                      ? (isNightMode ? "bg-pink-950/60 border-pink-500/50 text-pink-300" : "bg-pink-50 dark:bg-pink-950/60 border-pink-300 dark:border-pink-500/50 text-pink-800 dark:text-pink-300")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400")
                   }`}
                 >
                   <span>🍬 ماكرون فرنسي</span>
-                  {hasMacarons && <Check className="w-3.5 h-3.5 text-pink-600" />}
+                  {hasMacarons && <Check className="w-3.5 h-3.5 text-pink-500" />}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setHasBerries(!hasBerries)}
                   className={`p-2 rounded-xl border font-bold flex items-center justify-between transition ${
-                    hasBerries ? "bg-red-50 border-red-300 text-red-800" : "bg-slate-50 border-slate-200 text-slate-500"
+                    hasBerries
+                      ? (isNightMode ? "bg-rose-950/60 border-rose-500/50 text-rose-300" : "bg-red-50 dark:bg-rose-950/60 border-red-300 dark:border-rose-500/50 text-red-800 dark:text-rose-300")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400")
                   }`}
                 >
                   <span>🍓 توت وفواكه طازجة</span>
-                  {hasBerries && <Check className="w-3.5 h-3.5 text-red-600" />}
+                  {hasBerries && <Check className="w-3.5 h-3.5 text-rose-500" />}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setHasGoldLeaf(!hasGoldLeaf)}
                   className={`p-2 rounded-xl border font-bold flex items-center justify-between transition ${
-                    hasGoldLeaf ? "bg-yellow-50 border-yellow-300 text-yellow-800" : "bg-slate-50 border-slate-200 text-slate-500"
+                    hasGoldLeaf
+                      ? (isNightMode ? "bg-yellow-950/60 border-yellow-500/50 text-yellow-300" : "bg-yellow-50 dark:bg-yellow-950/60 border-yellow-300 dark:border-yellow-500/50 text-yellow-800 dark:text-yellow-300")
+                      : (isNightMode ? "bg-slate-800 border-slate-700 text-slate-400" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400")
                   }`}
                 >
                   <span>✨ أوراق ذهب عيار 24</span>
-                  {hasGoldLeaf && <Check className="w-3.5 h-3.5 text-yellow-600" />}
+                  {hasGoldLeaf && <Check className="w-3.5 h-3.5 text-yellow-500" />}
                 </button>
               </div>
             </div>
 
             {/* Approximate Price Estimation Widget */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-pink-50/40 to-[#E8F6FC] border border-rose-200/70 space-y-1.5">
+            <div className={`p-4 rounded-2xl border space-y-1.5 transition-colors ${
+              isNightMode
+                ? "bg-gradient-to-r from-slate-800 via-rose-950/30 to-slate-800 border-rose-900/50 text-white"
+                : "bg-gradient-to-r from-rose-50 via-pink-50/40 to-[#E8F6FC] dark:from-slate-800 dark:via-rose-950/30 dark:to-slate-800 border-rose-200/70 dark:border-slate-700 text-slate-900 dark:text-white"
+            }`}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-600">السعر التقديري المبدئي:</span>
-                <span className="text-base font-black text-rose-600">
+                <span className={`text-xs font-bold ${isNightMode ? "text-slate-300" : "text-slate-600 dark:text-slate-300"}`}>السعر التقديري المبدئي:</span>
+                <span className="text-base font-black text-rose-600 dark:text-rose-400">
                   {estimatedPriceRange.min} ~ {estimatedPriceRange.max} ج.م
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                * السعر التقديري يشمل التصميم المختار، ويتم إرسال العرض المعتمد فور مراجعة الشيف لدرجة تعقيد التنفيذ.
+              <p className={`text-[11px] leading-relaxed ${isNightMode ? "text-slate-400" : "text-slate-500 dark:text-slate-400"}`}>
+                {customCakePriceNote || "* السعر التقديري يشمل التصميم المختار، ويتم إرسال العرض المعتمد فور مراجعة الشيف لدرجة تعقيد التنفيذ."}
               </p>
             </div>
 
@@ -562,34 +610,34 @@ export default function CustomCakeRequestPage() {
         </div>
 
         {/* Right Column (Desktop 7 cols): Customization Form */}
-        <div className="lg:col-span-7 bg-white p-6 sm:p-10 rounded-[36px] border border-rose-100 shadow-sm space-y-8">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[36px] border border-rose-100 dark:border-slate-800 shadow-sm space-y-8 transition-colors duration-300">
           
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Step 1: Customer Contact */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
                 <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-[#89CFF0] text-white font-black flex items-center justify-center text-xs shadow-sm">
                   1
                 </span>
-                <h3 className="font-black text-base text-slate-900">بيانات التواصل والتأكيد</h3>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">بيانات التواصل والتأكيد</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">الاسم بالكامل *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">الاسم بالكامل *:</label>
                   <input
                     type="text"
                     required
                     placeholder="سارة محمود"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0] font-medium"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#89CFF0] font-medium transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">رقم الهاتف المصري *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">رقم الهاتف المصري *:</label>
                   <input
                     type="tel"
                     required
@@ -597,18 +645,18 @@ export default function CustomCakeRequestPage() {
                     placeholder="010XXXXXXXX"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 text-right focus:outline-none focus:ring-2 focus:ring-[#89CFF0] font-medium"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-right focus:outline-none focus:ring-2 focus:ring-[#89CFF0] font-medium transition-colors"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">البريد الإلكتروني (اختياري لاستلام العرض):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">البريد الإلكتروني (اختياري لاستلام العرض):</label>
                   <input
                     type="email"
                     placeholder="sara@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0] font-medium"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#89CFF0] font-medium transition-colors"
                   />
                 </div>
               </div>
@@ -616,28 +664,28 @@ export default function CustomCakeRequestPage() {
 
             {/* Step 2: Cake Specifications */}
             <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
                 <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-[#89CFF0] text-white font-black flex items-center justify-center text-xs shadow-sm">
                   2
                 </span>
-                <h3 className="font-black text-base text-slate-900">مواصفات التورتة والمناسبة</h3>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">مواصفات التورتة والمناسبة</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">تاريخ المناسبة المطلوب *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">تاريخ المناسبة المطلوب *:</label>
                   <input
                     type="date"
                     required
                     min={new Date().toISOString().split("T")[0]}
                     value={requestedDate}
                     onChange={(e) => setRequestedDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#89CFF0]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-slate-800 dark:text-white font-bold bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0] transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">عدد الأفراد التقديري *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">عدد الأفراد التقديري *:</label>
                   <input
                     type="number"
                     min={5}
@@ -651,27 +699,46 @@ export default function CustomCakeRequestPage() {
                       else if (val <= 35) setSelectedTiers(2);
                       else setSelectedTiers(3);
                     }}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-[#89CFF0]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-slate-800 dark:text-white font-bold bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0] transition-colors"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">النكهة والحشوة المفضلة *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">النكهة والحشوة المفضلة *:</label>
                   <select
                     value={flavorPreference}
                     onChange={(e) => setFlavorPreference(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#89CFF0]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-slate-800 dark:text-white font-bold bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0] transition-colors"
                   >
-                    <option value="شوكولاتة نوتيلا فاخرة">شوكولاتة نوتيلا بلجيكية غنية</option>
-                    <option value="ريد فيلفيت مع كريمة الجبن">ريد فيلفيت مخملي مع كريمة الجبن النيوزيلندية</option>
-                    <option value="فانيليا مدغشقر مع توت بري">فانيليا مدغشقر مع توت بري طازج</option>
-                    <option value="فستق حلبي مع مستكة">بستاشيو إيطالي مع مستكة يونانية فاخرة</option>
-                    <option value="لوتس كراميل مقرمش">كراميل مملح مع بسكويت لوتس مقرمش</option>
+                    {availableFlavors.map((flv) => (
+                      <option key={flv} value={flv} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
+                        {flv}
+                      </option>
+                    ))}
+                    <option value="OTHER" className="bg-white dark:bg-slate-800 text-pink-600 dark:text-pink-400 font-bold">
+                      ✨ نكهة خاصة أخرى (اكتب ما تفضله)
+                    </option>
                   </select>
+
+                  {flavorPreference === "OTHER" && (
+                    <div className="mt-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <label className="font-bold text-pink-600 dark:text-pink-400 block mb-1 text-[11px]">
+                        اكتب النكهة أو الحشوة التي تتمناها بالتفصيل 🍰:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="مثال: كراميل مملح مع بسكويت لوتس ومكسرات مكرملة..."
+                        value={customFlavorText}
+                        onChange={(e) => setCustomFlavorText(e.target.value)}
+                        required={flavorPreference === "OTHER"}
+                        className="w-full px-4 py-2.5 rounded-xl border-2 border-pink-400 dark:border-pink-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     العبارة المكتوبة على التورتة (تظهر فورياً في المعاينة الحية):
                   </label>
                   <input
@@ -679,18 +746,18 @@ export default function CustomCakeRequestPage() {
                     placeholder="مثال: Happy Birthday Lolo أو مبروك التخرج يا سارة"
                     value={messageOnCake}
                     onChange={(e) => setMessageOnCake(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#89CFF0] transition-colors"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">تفاصيل وملاحظات التصميم والألوان الإضافية:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">تفاصيل وملاحظات التصميم والألوان الإضافية:</label>
                   <textarea
                     rows={3}
                     placeholder="اوصف ألوان التورتة، الثيم الخاص بالحفل، أو أي عناصر خاصة تريد إضافتها..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#89CFF0] resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#89CFF0] resize-none transition-colors"
                   />
                 </div>
               </div>
@@ -698,14 +765,14 @@ export default function CustomCakeRequestPage() {
 
             {/* Step 3: Reference Image Upload */}
             <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
                 <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-[#89CFF0] text-white font-black flex items-center justify-center text-xs shadow-sm">
                   3
                 </span>
-                <h3 className="font-black text-base text-slate-900">صورة مرجعية أو تصميم مقارب للتورتة (اختياري)</h3>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">صورة مرجعية أو تصميم مقارب للتورتة (اختياري)</h3>
               </div>
 
-              <div className="border-2 border-dashed border-rose-200 hover:border-[#89CFF0] rounded-2xl p-6 text-center transition bg-rose-50/20">
+              <div className="border-2 border-dashed border-rose-200 dark:border-slate-700 hover:border-[#89CFF0] dark:hover:border-[#89CFF0] rounded-2xl p-6 text-center transition bg-rose-50/20 dark:bg-slate-800/40">
                 <input
                   type="file"
                   id="cake-ref-img"
@@ -719,14 +786,14 @@ export default function CustomCakeRequestPage() {
                 />
                 <label htmlFor="cake-ref-img" className="cursor-pointer block space-y-2">
                   <Upload className="w-8 h-8 text-[#5BBBE7] mx-auto" />
-                  <div className="text-xs font-bold text-slate-800">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     {referenceImage ? (
-                      <span className="text-emerald-600 font-black">تم اختيار: {referenceImage.name}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black">تم اختيار: {referenceImage.name}</span>
                     ) : (
                       <span>اضغط هنا لاختيار صورة من جهازك (JPG / PNG / WEBP)</span>
                     )}
                   </div>
-                  <span className="text-[10px] text-slate-400 block">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block">
                     يمكنك رفع صورة من بنترست أو إنستغرام لتقريب الفكرة لشيف لولو
                   </span>
                 </label>
@@ -734,7 +801,7 @@ export default function CustomCakeRequestPage() {
             </div>
 
             {error && (
-              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+              <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
@@ -768,35 +835,35 @@ export default function CustomCakeRequestPage() {
       {/* Success Modal */}
       {createdRequest && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-rose-100 text-center animate-in fade-in zoom-in-95">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-rose-100 dark:border-slate-800 text-center animate-in fade-in zoom-in-95 transition-colors">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner border border-emerald-200 dark:border-emerald-800">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div>
-              <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+              <span className="text-[11px] font-black text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-3 py-1 rounded-full border border-rose-100 dark:border-rose-900">
                 تم استلام طلب التورتة بنجاح ✨
               </span>
-              <h2 className="text-2xl font-black text-slate-900 mt-2">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-2">
                 كود المتابعة: {createdRequest.publicReference || createdRequest.requestReference}
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 سيقوم شيف لولو كب كيك بمراجعة التصميم والمكونات وإرسال عرض السعر المعتمد لك فورياً.
               </p>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs text-right">
+            <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs text-right">
               <div className="flex justify-between">
-                <span className="text-slate-500">حالة الطلب:</span>
-                <span className="font-bold text-amber-600">{createdRequest.statusLabelAr}</span>
+                <span className="text-slate-500 dark:text-slate-400">حالة الطلب:</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">{createdRequest.statusLabelAr}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">موعد المناسبة:</span>
-                <span className="font-bold text-slate-900">{createdRequest.requestedDate}</span>
+                <span className="text-slate-500 dark:text-slate-400">موعد المناسبة:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{createdRequest.requestedDate}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">عدد الأفراد:</span>
-                <span className="font-bold text-slate-900">{createdRequest.servingsNeeded} فرد</span>
+                <span className="text-slate-500 dark:text-slate-400">عدد الأفراد:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{createdRequest.servingsNeeded} فرد</span>
               </div>
             </div>
 
@@ -804,7 +871,7 @@ export default function CustomCakeRequestPage() {
               <button
                 type="button"
                 onClick={handleCopyRef}
-                className="w-full py-3.5 rounded-2xl border border-rose-200 hover:bg-rose-50 text-slate-800 font-black text-xs transition flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl border border-rose-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-black text-xs transition flex items-center justify-center gap-2"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
                 <span>{copied ? "تم نسخ كود المتابعة بنجاح!" : "نسخ كود المتابعة للرجوع إليه لاحقاً"}</span>
@@ -824,7 +891,7 @@ export default function CustomCakeRequestPage() {
 
               <Link
                 href={`/custom-cake/${createdRequest.publicReference || createdRequest.requestReference}?token=${createdRequest.accessToken || createdRequest.trackingToken || ""}`}
-                className="w-full py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition shadow-sm flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-black text-xs transition shadow-sm flex items-center justify-center gap-2"
               >
                 <span>الانتقال لصفحة عرض السعر ومتابعة التورتة</span>
                 <ExternalLink className="w-4 h-4" />

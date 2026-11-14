@@ -105,7 +105,17 @@ export default function HomePage() {
   const [allProducts, setAllProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
-  const { promoBannerActive, promoBannerText, cakeSlides: contextCakeSlides, facebookPageUrl } = useStoreSettings();
+  const {
+    promoBannerActive,
+    promoBannerText,
+    cakeSlides: contextCakeSlides,
+    facebookPageUrl,
+    customCakeBadge,
+    customCakeTitle,
+    customCakeSubtitle,
+    customCakeCtaPrimary,
+    customCakeCtaSecondary,
+  } = useStoreSettings();
 
   // Dynamic Customer Reviews State (USER REQUEST: التحكم الكامل بآراء وتقييمات العملاء المعروضة)
   const [dynamicReviews, setDynamicReviews] = useState<ReviewItemDto[]>([]);
@@ -529,16 +539,22 @@ export default function HomePage() {
             <div className="lg:col-span-7 space-y-6 text-right">
               <span className="px-4 py-1.5 rounded-full bg-white dark:bg-slate-800/90 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 text-xs font-black inline-flex items-center gap-2 shadow-sm">
                 <Cake className="w-4 h-4 text-pink-500" />
-                <span>ورشة تفصيل وتصميم التورتات الخاصة 🎂</span>
+                <span>{customCakeBadge || "ورشة تفصيل وتصميم التورتات الخاصة 🎂"}</span>
               </span>
 
               <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white leading-tight">
-                هل لديك فكرة أو تصميم مميز؟ <br />
-                <span className="pink-blue-gradient-text">سنحولها لتورتة أحلامك ثلاثية الأبعاد</span>
+                {customCakeTitle ? (
+                  <span className="whitespace-pre-line">{customCakeTitle}</span>
+                ) : (
+                  <>
+                    هل لديك فكرة أو تصميم مميز؟ <br />
+                    <span className="pink-blue-gradient-text">سنحولها لتورتة أحلامك ثلاثية الأبعاد</span>
+                  </>
+                )}
               </h2>
 
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl font-medium">
-                شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك. سيقوم شيف لولو كب كيك بمراجعة فكرتك وإرسال عرض سعر فني دقيق خلال وقت قياسي.
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl font-medium whitespace-pre-line">
+                {customCakeSubtitle || "شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك. سيقوم شيف لولو كب كيك بمراجعة فكرتك وإرسال عرض سعر فني دقيق خلال وقت قياسي."}
               </p>
 
               <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -547,7 +563,7 @@ export default function HomePage() {
                   className="px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-sky-500 text-white font-black text-sm shadow-xl shadow-pink-200 hover:shadow-sky-300 transition flex items-center gap-2.5 btn-pop active:scale-95"
                 >
                   <Cake className="w-4 h-4 text-white" />
-                  <span>صمم واطلب تسعير تورتتك الخاصة 3D</span>
+                  <span>{customCakeCtaPrimary || "صمم واطلب تسعير تورتتك الخاصة 3D"}</span>
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
 
@@ -555,7 +571,7 @@ export default function HomePage() {
                   href="/track"
                   className="px-6 py-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-pink-200 dark:border-pink-800 text-pink-600 dark:text-pink-300 font-black text-xs hover:bg-pink-50 dark:hover:bg-slate-700 transition shadow-sm btn-pop"
                 >
-                  <span>متابعة عرض سعر سابق</span>
+                  <span>{customCakeCtaSecondary || "متابعة عرض سعر سابق"}</span>
                 </Link>
               </div>
 

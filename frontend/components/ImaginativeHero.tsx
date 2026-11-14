@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { playJoyfulChime } from "@/lib/soundFx";
-import { useStoreSettings } from "@/components/StoreSettingsContext";
+import { useStoreSettings, DEFAULT_TASTE_HIGHLIGHTS } from "@/components/StoreSettingsContext";
 
 const DEFAULT_HERO_SLIDES = [
   {
@@ -53,7 +53,7 @@ const DEFAULT_HERO_SLIDES = [
 ];
 
 export default function ImaginativeHero() {
-  const { heroTitle, heroSubtitle, heroBadge, heroSlides } = useStoreSettings();
+  const { heroTitle, heroSubtitle, heroBadge, heroSlides, heroTasteHighlights } = useStoreSettings();
   const [activeTopping, setActiveTopping] = useState<string>("all");
   const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,23 +148,37 @@ export default function ImaginativeHero() {
 
             {/* Interactive Ingredient Pills */}
             <div className="pt-1">
-              <span className="text-xs font-extrabold text-slate-400 dark:text-slate-400 block mb-2">
+              <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 block mb-2">
                 اضغط لاكتشاف سر مذاقنا الطبيعي 100%:
               </span>
               <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {ingredients.map((ing) => {
-                  const isSelected = activeTopping === ing.id;
+                {(heroTasteHighlights && heroTasteHighlights.length > 0 ? heroTasteHighlights : DEFAULT_TASTE_HIGHLIGHTS).map((item, idx) => {
+                  const targetSlide = item.slideIndex !== undefined ? (item.slideIndex % slides.length) : (idx % slides.length);
+                  const isCurrent = activeSlide === targetSlide;
                   return (
                     <button
-                      key={ing.id}
-                      onClick={() => handleToppingClick(ing.id)}
-                      className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-black transition-all duration-200 border ${
-                        isSelected
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setActiveSlide(targetSlide);
+                        playJoyfulChime();
+                        try {
+                          confetti({
+                            particleCount: 20,
+                            spread: 50,
+                            origin: { y: 0.65 },
+                            colors: ["#FF5E8E", "#38BDF8", "#FDE047"],
+                          });
+                        } catch {}
+                      }}
+                      className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-black transition-all duration-300 border flex items-center gap-1.5 active:scale-95 ${
+                        isCurrent
                           ? "bg-gradient-to-r from-pink-500 to-sky-500 text-white border-transparent shadow-md scale-105"
                           : "bg-white/90 dark:bg-slate-800/90 hover:bg-pink-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-pink-200/80 dark:border-slate-700 shadow-sm"
                       }`}
                     >
-                      {ing.label}
+                      {item.icon && <span>{item.icon}</span>}
+                      <span>{item.label}</span>
                     </button>
                   );
                 })}
