@@ -337,10 +337,14 @@ export default function AdminDashboardPage() {
   const [newProdImageUrl, setNewProdImageUrl] = useState("");
   const [productSubmitting, setProductSubmitting] = useState(false);
 
-  // Edit Product Modal State (USER REQUEST: Full CRUD)
+  // Edit Product Modal State (USER REQUEST: Full CRUD with sizes/variants and flavors/options)
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
   const [editProdNameAr, setEditProdNameAr] = useState("");
   const [editProdNameEn, setEditProdNameEn] = useState("");
+  const [editProdSlug, setEditProdSlug] = useState("");
+  const [editProdCategoryId, setEditProdCategoryId] = useState("");
+  const [editProdType, setEditProdType] = useState<"CUPCAKE" | "CAKE" | "GATEAU" | "ORIENTAL" | "WESTERN" | "BOX" | "CUSTOM">("CAKE");
+  const [editProdSellingUnit, setEditProdSellingUnit] = useState<"PIECE" | "BOX" | "WEIGHT" | "CONFIGURABLE">("PIECE");
   const [editProdPrice, setEditProdPrice] = useState<number>(45);
   const [editProdStock, setEditProdStock] = useState<number>(15);
   const [editProdIsPreOrder, setEditProdIsPreOrder] = useState<boolean>(false);
@@ -349,6 +353,14 @@ export default function AdminDashboardPage() {
   const [editProdIsFeatured, setEditProdIsFeatured] = useState<boolean>(false);
   const [editProdImageUrl, setEditProdImageUrl] = useState("");
   const [editProdSubmitting, setEditProdSubmitting] = useState(false);
+
+  // Edit Product Variants (Sizes & Servings) & Options (Flavors & Fillings)
+  const [editProdVariants, setEditProdVariants] = useState<Array<{ id?: string; nameAr: string; nameEn?: string; priceOverride: number }>>([]);
+  const [newVariantNameAr, setNewVariantNameAr] = useState("");
+  const [newVariantPrice, setNewVariantPrice] = useState<number>(500);
+  const [editProdOptions, setEditProdOptions] = useState<Array<{ id?: string; nameAr: string; priceDelta: number }>>([]);
+  const [newOptionNameAr, setNewOptionNameAr] = useState("");
+  const [newOptionPriceDelta, setNewOptionPriceDelta] = useState<number>(0);
 
   // Real Image Upload States
   const [uploadingProdImage, setUploadingProdImage] = useState(false);
@@ -1606,11 +1618,15 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Edit & Delete Product Handlers (USER REQUEST: Full CRUD)
+  // Edit & Delete Product Handlers (USER REQUEST: Full CRUD with sizes/variants & flavors/options)
   const handleStartEditProduct = (p: ProductDto) => {
     setEditingProduct(p);
     setEditProdNameAr(p.nameAr);
     setEditProdNameEn(p.nameEn || p.slug);
+    setEditProdSlug(p.slug);
+    setEditProdCategoryId(p.categoryId);
+    setEditProdType(p.productType || "CAKE");
+    setEditProdSellingUnit(p.sellingUnit || "PIECE");
     setEditProdPrice(p.basePrice);
     setEditProdStock(p.stockQuantity ?? 15);
     setEditProdIsPreOrder(p.isPreOrder ?? false);
@@ -1618,6 +1634,38 @@ export default function AdminDashboardPage() {
     setEditProdDescAr(p.descriptionAr || "");
     setEditProdIsFeatured(p.isFeatured ?? false);
     setEditProdImageUrl(p.primaryImageUrl || "");
+    
+    // Load existing variants / sizes
+    const existingVariants = Array.isArray(p.variants) && p.variants.length > 0
+      ? p.variants.map((v) => ({
+          id: v.id,
+          nameAr: v.nameAr,
+          nameEn: v.nameEn || "",
+          priceOverride: Number(v.priceOverride !== undefined && v.priceOverride !== null ? v.priceOverride : p.basePrice),
+        }))
+      : [];
+    setEditProdVariants(existingVariants);
+    setNewVariantNameAr("");
+    setNewVariantPrice(p.basePrice);
+
+    // Load existing options / flavors
+    const existingOptions: Array<{ id?: string; nameAr: string; priceDelta: number }> = [];
+    if (Array.isArray(p.optionGroups) && p.optionGroups.length > 0) {
+      for (const og of p.optionGroups) {
+        if (Array.isArray(og.values)) {
+          for (const val of og.values) {
+            existingOptions.push({
+              id: val.id,
+              nameAr: val.nameAr,
+              priceDelta: Number(val.priceDelta || 0),
+            });
+          }
+        }
+      }
+    }
+    setEditProdOptions(existingOptions);
+    setNewOptionNameAr("");
+    setNewOptionPriceDelta(0);
   };
 
   const handleSaveEditProduct = async (e: React.FormEvent) => {
@@ -1626,10 +1674,12 @@ export default function AdminDashboardPage() {
     setEditProdSubmitting(true);
     try {
       const updated = await updateAdminProduct(editingProduct.id, {
+        categoryId: editProdCategoryId,
         nameAr: editProdNameAr,
         nameEn: editProdNameEn,
-        slug: editingProduct.slug,
-        categoryId: editingProduct.categoryId,
+        slug: editProdSlug,
+        productType: editProdType,
+        sellingUnit: editProdSellingUnit,
         basePrice: Number(editProdPrice),
         stockQuantity: Number(editProdStock),
         isPreOrder: editProdIsPreOrder,
@@ -1637,10 +1687,21 @@ export default function AdminDashboardPage() {
         descriptionAr: editProdDescAr,
         isFeatured: editProdIsFeatured,
         primaryImageUrl: editProdImageUrl || undefined,
+        variants: editProdVariants.map((v, i) => ({
+          nameAr: v.nameAr,
+          nameEn: v.nameEn,
+          priceOverride: Number(v.priceOverride),
+          displayOrder: i + 1,
+        })),
+        options: editProdOptions.map((opt) => ({
+          nameAr: opt.nameAr,
+          priceDelta: Number(opt.priceDelta || 0),
+        })),
       });
       setCatalogProducts(catalogProducts.map((p) => p.id === updated.id ? updated : p));
       setEditingProduct(null);
-      showToast(`تم تحديث الصنف "${editProdNameAr}" بنجاح ✨`);
+      showToast(`تم تحديث الصنف "${editProdNameAr}" وكل تفاصيله ومقاساته بنجاح ✨`);
+      loadCatalogData();
     } catch (err: unknown) {
       const error = err as Error;
       showToast(error.message || "فشل تحديث الصنف", "error");
@@ -3061,15 +3122,17 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Edit Product Modal (USER REQUEST: Full CRUD) */}
+          {/* Edit Product Modal (USER REQUEST: Full CRUD with sizes/variants & flavors/options) */}
           {editingProduct && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full space-y-5 shadow-2xl border border-rose-200 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-5 shadow-2xl border border-rose-200 max-h-[92vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-rose-100 pb-3">
-                  <h4 className="font-black text-lg text-slate-900 flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <Pencil className="w-5 h-5 text-sky-600" />
-                    <span>تعديل الصنف: {editingProduct.nameAr}</span>
-                  </h4>
+                    <h4 className="font-black text-lg text-slate-900">
+                      تعديل الصنف: {editingProduct.nameAr}
+                    </h4>
+                  </div>
                   <button
                     onClick={() => setEditingProduct(null)}
                     className="p-1.5 rounded-full hover:bg-rose-50 text-slate-400 hover:text-slate-600 transition"
@@ -3078,10 +3141,65 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveEditProduct} className="space-y-4 text-xs">
+                <form onSubmit={handleSaveEditProduct} className="space-y-5 text-xs">
+                  
+                  {/* Category, Type, and Selling Unit Controls */}
+                  <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-100 space-y-3">
+                    <span className="font-black text-xs text-rose-800 block">تصنيف ونوع ووحدة بيع الصنف:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">التصنيف *:</label>
+                        <select
+                          value={editProdCategoryId}
+                          onChange={(e) => setEditProdCategoryId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800"
+                          required
+                        >
+                          {catalogCategories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.nameAr}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">نوع المنتج *:</label>
+                        <select
+                          value={editProdType}
+                          onChange={(e) => setEditProdType(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800"
+                        >
+                          <option value="CAKE">كيك وتورتات (CAKE)</option>
+                          <option value="CUPCAKE">كب كيك (CUPCAKE)</option>
+                          <option value="GATEAU">جاتوه (GATEAU)</option>
+                          <option value="BOX">بوكس حلويات مشكل (BOX)</option>
+                          <option value="ORIENTAL">حلويات شرقية (ORIENTAL)</option>
+                          <option value="WESTERN">حلويات غربية (WESTERN)</option>
+                          <option value="CUSTOM">كيك مخصص (CUSTOM)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">وحدة القياس / البيع *:</label>
+                        <select
+                          value={editProdSellingUnit}
+                          onChange={(e) => setEditProdSellingUnit(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800"
+                        >
+                          <option value="PIECE">بالقطعة (PIECE)</option>
+                          <option value="BOX">بالعلبة / البوكس (BOX)</option>
+                          <option value="WEIGHT">بالوزن / كجم (WEIGHT)</option>
+                          <option value="CONFIGURABLE">حسب التخصيص والمقاس (CONFIGURABLE)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Basic Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1">اسم الصنف بالعربية:</label>
+                      <label className="font-bold text-slate-700 block mb-1">اسم الصنف بالعربية *:</label>
                       <input
                         type="text"
                         value={editProdNameAr}
@@ -3100,13 +3218,23 @@ export default function AdminDashboardPage() {
                       />
                     </div>
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1">السعر الأساسي (ج.م):</label>
+                      <label className="font-bold text-slate-700 block mb-1">الرابط اللطيف (Slug) *:</label>
+                      <input
+                        type="text"
+                        value={editProdSlug}
+                        onChange={(e) => setEditProdSlug(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 font-mono text-[11px] text-slate-800"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">السعر الأساسي (ج.م) *:</label>
                       <input
                         type="number"
                         step="0.5"
                         value={editProdPrice}
                         onChange={(e) => setEditProdPrice(Number(e.target.value))}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 font-black text-rose-600"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 font-black text-rose-600 text-sm"
                         required
                       />
                     </div>
@@ -3130,7 +3258,7 @@ export default function AdminDashboardPage() {
                         required
                       />
                     </div>
-                    <div className="flex items-center gap-4 pt-6">
+                    <div className="sm:col-span-2 flex items-center gap-6 pt-1">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -3138,7 +3266,7 @@ export default function AdminDashboardPage() {
                           onChange={(e) => setEditProdIsPreOrder(e.target.checked)}
                           className="w-4 h-4 rounded text-rose-500"
                         />
-                        <span className="font-bold text-slate-700">يتطلب حجز مسبق</span>
+                        <span className="font-bold text-slate-700">يتطلب حجز مسبق (يُخبز طازجاً بالطلب) 🧁</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -3147,7 +3275,7 @@ export default function AdminDashboardPage() {
                           onChange={(e) => setEditProdIsFeatured(e.target.checked)}
                           className="w-4 h-4 rounded text-amber-500"
                         />
-                        <span className="font-bold text-slate-700">أكثر مبيعاً ⭐</span>
+                        <span className="font-bold text-slate-700">تمييز في الرئيسية (أكثر مبيعاً ⭐)</span>
                       </label>
                     </div>
                   </div>
@@ -3162,10 +3290,10 @@ export default function AdminDashboardPage() {
                     />
                   </div>
 
-                  {/* Product Image URL & Presets in Edit Modal */}
+                  {/* Product Image Upload & Control */}
                   <div className="space-y-2 pt-2 border-t border-rose-100">
                     <div className="flex items-center justify-between">
-                      <label className="font-bold text-slate-700 block text-xs">صورة الصنف الأساسية (تغيير الصورة بحرية) 🖼️:</label>
+                      <label className="font-bold text-slate-700 block text-xs">صورة الصنف الأساسية (رفع مباشر من الجهاز أو رابط) 🖼️:</label>
                       <span className="text-[10px] text-sky-600 font-bold">تحديث فوري بالمتجر</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -3176,7 +3304,7 @@ export default function AdminDashboardPage() {
                         onChange={(e) => setEditProdImageUrl(e.target.value)}
                         className="flex-1 px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono text-[11px]"
                       />
-                      <label className="cursor-pointer px-3.5 py-2.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center gap-1.5 shrink-0 transition">
+                      <label className="cursor-pointer px-3.5 py-2.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center gap-1.5 shrink-0 transition shadow-xs">
                         <Upload className="w-4 h-4" />
                         <span>{uploadingEditProdImage ? "جاري الرفع..." : "رفع من الجهاز 📁"}</span>
                         <input
@@ -3202,51 +3330,208 @@ export default function AdminDashboardPage() {
                         />
                       </label>
                       {editProdImageUrl && (
-                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-rose-200 relative shrink-0">
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-sky-300 relative shrink-0 shadow-sm bg-slate-50">
                           <Image src={editProdImageUrl} alt="معاينة" fill className="object-cover" />
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1 text-[11px]">
-                      <span className="text-slate-400 font-bold self-center">صور جاهزة:</span>
-                      {[
-                        { label: "🧁 كب كيك فراولة", url: "/placeholders/cupcake-1.jpg" },
-                        { label: "🍫 كب كيك شوكولاتة", url: "/placeholders/cupcake-2.jpg" },
-                        { label: "🎂 تورتة شوكولاتة", url: "/placeholders/cake-1.jpg" },
-                        { label: "🍓 تورتة توت أحمر", url: "/placeholders/cake-2.jpg" },
-                        { label: "🍰 جاتوه فاخر", url: "/placeholders/gateau-1.jpg" },
-                        { label: "🎁 بوكس حلويات", url: "/placeholders/box-1.jpg" },
-                      ].map((pre) => (
+                  </div>
+
+                  {/* Hierarchical Variants & Sizes Manager (الهيكل الهرمي للمقاسات) */}
+                  <div className="space-y-3 p-4 rounded-2xl bg-sky-50/60 border border-sky-200/80">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-black text-slate-800 text-xs">
+                        <Layers className="w-4 h-4 text-sky-600" />
+                        <span>المقاسات والأحجام المتاحة لهذا الصنف (الهيكل الهرمي 📏):</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-black text-[10px]">
+                        {editProdVariants.length} مقاس مضاف
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      حدد الأحجام والمقاسات (مثلاً: 20 سم، 24 سم، دورين...) وسعر كل مقاس ليختاره العميل في المتجر:
+                    </p>
+
+                    {/* Current Variants List */}
+                    {editProdVariants.length > 0 ? (
+                      <div className="space-y-2">
+                        {editProdVariants.map((v, vIdx) => (
+                          <div key={vIdx} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-sky-200 shadow-2xs">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-800 font-black text-[10px] flex items-center justify-center">
+                                {vIdx + 1}
+                              </span>
+                              <div>
+                                <span className="font-bold text-slate-900 block text-xs">{v.nameAr}</span>
+                                {v.nameEn && <span className="text-[10px] text-slate-400">{v.nameEn}</span>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-black text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100">
+                                {v.priceOverride} ج.م
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setEditProdVariants(editProdVariants.filter((_, i) => i !== vIdx))}
+                                className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                title="حذف هذا المقاس"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-white/80 border border-dashed border-sky-300 text-center text-slate-500 text-[11px]">
+                        لم يتم تعيين مقاسات متعددة بعد. سيباع الصنف بسعره الأساسي ({editProdPrice} ج.م).
+                      </div>
+                    )}
+
+                    {/* Add New Variant Inline Form */}
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-sky-200">
+                      <input
+                        type="text"
+                        placeholder="اسم المقاس (مثال: حجم وسط 20 سم - تكفي 8 أفراد)"
+                        value={newVariantNameAr}
+                        onChange={(e) => setNewVariantNameAr(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-sky-200 bg-white font-bold text-xs"
+                      />
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                        <input
+                          type="number"
+                          placeholder="السعر"
+                          value={newVariantPrice}
+                          onChange={(e) => setNewVariantPrice(Number(e.target.value))}
+                          className="w-24 px-3 py-2 rounded-xl border border-sky-200 bg-white font-bold text-xs text-center"
+                        />
+                        <span className="text-[11px] font-bold text-slate-500">ج.م</span>
                         <button
-                          key={pre.url}
                           type="button"
-                          onClick={() => setEditProdImageUrl(pre.url)}
-                          className={`px-2.5 py-1 rounded-lg border font-bold transition ${
-                            editProdImageUrl === pre.url 
-                              ? "bg-sky-500 text-white border-sky-500 shadow-xs" 
-                              : "bg-white text-slate-600 border-rose-100 hover:bg-rose-50"
-                          }`}
+                          onClick={() => {
+                            if (!newVariantNameAr.trim()) {
+                              showToast("يرجى كتابة اسم المقاس أولاً", "error");
+                              return;
+                            }
+                            setEditProdVariants([
+                              ...editProdVariants,
+                              {
+                                nameAr: newVariantNameAr.trim(),
+                                priceOverride: Number(newVariantPrice) || Number(editProdPrice),
+                              },
+                            ]);
+                            setNewVariantNameAr("");
+                            setNewVariantPrice(Number(editProdPrice));
+                            showToast("تمت إضافة المقاس للقائمة ✨");
+                          }}
+                          className="px-3 py-2 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 transition shrink-0"
                         >
-                          {pre.label}
+                          + إضافة المقاس
                         </button>
-                      ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-rose-100">
+                  {/* Options / Flavors & Fillings Manager (النكهات والحشوات) */}
+                  <div className="space-y-3 p-4 rounded-2xl bg-pink-50/60 border border-pink-200/80">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-black text-slate-800 text-xs">
+                        <Sparkles className="w-4 h-4 text-pink-500" />
+                        <span>النكهات والحشوات المتاحة للصنف (شوكولاتة، فانيليا، ميكس...) 🍫:</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 font-black text-[10px]">
+                        {editProdOptions.length} نكهة متاحة
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      حدد النكهات التي يستطيع المشتري اختيارها (0 تعني مشمولة بنفس السعر، أو حدد مثلاً +35 ج.م):
+                    </p>
+
+                    {/* Current Options List */}
+                    {editProdOptions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {editProdOptions.map((opt, oIdx) => (
+                          <div key={oIdx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-pink-200 text-slate-800 text-xs font-bold shadow-2xs">
+                            <span>{opt.nameAr}</span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-pink-100 text-pink-700 text-[10px] font-black">
+                              {opt.priceDelta > 0 ? `+${opt.priceDelta} ج.م` : "سعر أساسي"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setEditProdOptions(editProdOptions.filter((_, i) => i !== oIdx))}
+                              className="text-slate-400 hover:text-red-600 transition"
+                              title="حذف هذه النكهة"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-white/80 border border-dashed border-pink-300 text-center text-slate-500 text-[11px]">
+                        لم يتم تعيين نكهات مخصصة لهذا الصنف بعد.
+                      </div>
+                    )}
+
+                    {/* Add New Option Inline Form */}
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-pink-200">
+                      <input
+                        type="text"
+                        placeholder="اسم النكهة أو الحشوة (مثال: ميكس نص فانيليا ونص شوكولاتة)"
+                        value={newOptionNameAr}
+                        onChange={(e) => setNewOptionNameAr(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-bold text-xs"
+                      />
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                        <input
+                          type="number"
+                          placeholder="فرق السعر (0 أو إضافي)"
+                          value={newOptionPriceDelta}
+                          onChange={(e) => setNewOptionPriceDelta(Number(e.target.value))}
+                          className="w-24 px-3 py-2 rounded-xl border border-pink-200 bg-white font-bold text-xs text-center"
+                        />
+                        <span className="text-[11px] font-bold text-slate-500">ج.م</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newOptionNameAr.trim()) {
+                              showToast("يرجى كتابة اسم النكهة أولاً", "error");
+                              return;
+                            }
+                            setEditProdOptions([
+                              ...editProdOptions,
+                              {
+                                nameAr: newOptionNameAr.trim(),
+                                priceDelta: Number(newOptionPriceDelta) || 0,
+                              },
+                            ]);
+                            setNewOptionNameAr("");
+                            setNewOptionPriceDelta(0);
+                            showToast("تمت إضافة النكهة للقائمة ✨");
+                          }}
+                          className="px-3 py-2 rounded-xl bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition shrink-0"
+                        >
+                          + إضافة النكهة
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Buttons */}
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-rose-100">
                     <button
                       type="button"
                       onClick={() => setEditingProduct(null)}
-                      className="px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold transition"
+                      className="px-5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-bold transition text-xs"
                     >
                       إلغاء
                     </button>
                     <button
                       type="submit"
                       disabled={editProdSubmitting}
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black shadow-md hover:brightness-105 transition"
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black shadow-md hover:brightness-105 transition text-xs flex items-center gap-1.5"
                     >
-                      {editProdSubmitting ? "جاري الحفظ..." : "حفظ التعديلات ✨"}
+                      {editProdSubmitting ? "جاري الحفظ..." : "حفظ التعديلات الشاملة ✨"}
                     </button>
                   </div>
                 </form>

@@ -18,6 +18,8 @@ export async function PUT(
       slug,
       descriptionAr,
       basePrice,
+      productType,
+      sellingUnit,
       prepLeadHours,
       stockQuantity,
       isPreOrder,
@@ -26,6 +28,8 @@ export async function PUT(
       isCustomizable,
       displayOrder,
       primaryImageUrl,
+      variants,
+      options,
     } = body;
 
     const [product] = await sql`
@@ -37,6 +41,8 @@ export async function PUT(
         slug = COALESCE(${slug || null}, slug),
         description_ar = COALESCE(${descriptionAr || null}, description_ar),
         base_price = COALESCE(${basePrice || null}, base_price),
+        product_type = COALESCE(${productType || null}, product_type),
+        selling_unit = COALESCE(${sellingUnit || null}, selling_unit),
         prep_lead_hours = COALESCE(${prepLeadHours || null}, prep_lead_hours),
         stock_quantity = COALESCE(${stockQuantity || null}, stock_quantity),
         is_pre_order = COALESCE(${isPreOrder !== undefined ? isPreOrder : null}, is_pre_order),
@@ -61,6 +67,53 @@ export async function PUT(
           INSERT INTO product_images (id, product_id, storage_key, is_primary, display_order, created_at)
           VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, true, 1, NOW())
         `;
+      }
+    }
+
+    if (Array.isArray(variants)) {
+      await sql`DELETE FROM product_variants WHERE product_id = ${id}`;
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        if (!v.nameAr || !v.nameAr.trim()) continue;
+        const vPrice = v.priceOverride !== undefined && v.priceOverride !== null ? Number(v.priceOverride) : Number(product.base_price);
+        await sql`
+          INSERT INTO product_variants (
+            id, product_id, name_ar, name_en, sku, price_override, is_active, display_order, created_at
+          ) VALUES (
+            gen_random_uuid(), ${id}, ${v.nameAr.trim()}, ${v.nameEn?.trim() || null}, ${v.sku || `${product.slug}-var-${i+1}`},
+            ${vPrice}, ${v.isActive !== false}, ${i + 1}, NOW()
+          )
+        `;
+      }
+    }
+
+    if (Array.isArray(options)) {
+      const existingPogs = await sql`SELECT option_group_id FROM product_option_groups WHERE product_id = ${id}`;
+      let optionGroupId: string | null = null;
+      if (existingPogs.length > 0) {
+        optionGroupId = existingPogs[0].option_group_id;
+        await sql`DELETE FROM option_values WHERE option_group_id = ${optionGroupId}`;
+      } else if (options.length > 0) {
+        const [newOg] = await sql`
+          INSERT INTO option_groups (id, name_ar, name_en, selection_type, is_required, min_selections, max_selections, created_at)
+          VALUES (gen_random_uuid(), 'النكهة والحشوة', 'Flavor & Filling', 'SINGLE', false, 0, 1, NOW())
+          RETURNING id
+        `;
+        optionGroupId = newOg.id;
+        await sql`
+          INSERT INTO product_option_groups (product_id, option_group_id, display_order)
+          VALUES (${id}, ${optionGroupId}, 1)
+        `;
+      }
+      if (optionGroupId) {
+        for (let i = 0; i < options.length; i++) {
+          const opt = options[i];
+          if (!opt.nameAr || !opt.nameAr.trim()) continue;
+          await sql`
+            INSERT INTO option_values (id, option_group_id, name_ar, name_en, price_modifier, is_active, display_order, created_at)
+            VALUES (gen_random_uuid(), ${optionGroupId}, ${opt.nameAr.trim()}, ${opt.nameEn || null}, ${Number(opt.priceDelta || 0)}, true, ${i + 1}, NOW())
+          `;
+        }
       }
     }
 

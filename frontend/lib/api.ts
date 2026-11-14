@@ -77,6 +77,8 @@ export interface ProductDto {
   isActive: boolean;
   isFeatured?: boolean;
   isCustomizable: boolean;
+  productType?: "CUPCAKE" | "CAKE" | "GATEAU" | "ORIENTAL" | "WESTERN" | "BOX" | "CUSTOM";
+  sellingUnit?: "PIECE" | "BOX" | "WEIGHT" | "CONFIGURABLE";
   primaryImageUrl?: string;
   categoryNameAr?: string;
   categorySlug?: string;
@@ -714,6 +716,21 @@ export interface CreateProductRequest {
   isCustomizable?: boolean;
   displayOrder?: number;
   primaryImageUrl?: string;
+  variants?: Array<{
+    id?: string;
+    nameAr: string;
+    nameEn?: string;
+    priceOverride: number;
+    sku?: string;
+    isActive?: boolean;
+    displayOrder?: number;
+  }>;
+  options?: Array<{
+    id?: string;
+    nameAr: string;
+    nameEn?: string;
+    priceDelta: number;
+  }>;
 }
 
 export interface CustomerAdminDto {

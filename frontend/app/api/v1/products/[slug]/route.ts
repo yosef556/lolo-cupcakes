@@ -27,6 +27,8 @@ export async function GET(
         p.is_active AS "isActive",
         p.is_featured AS "isFeatured",
         p.is_customizable AS "isCustomizable",
+        p.product_type AS "productType",
+        p.selling_unit AS "sellingUnit",
         c.name_ar AS "categoryNameAr",
         c.slug AS "categorySlug",
         COALESCE(img.storage_key, '/placeholders/cupcake-1.jpg') AS "primaryImageUrl"
@@ -43,14 +45,71 @@ export async function GET(
       return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
     }
 
+    const variants = await sql`
+      SELECT 
+        id, 
+        name_ar AS "nameAr", 
+        name_en AS "nameEn", 
+        sku, 
+        price_override::float AS "priceOverride", 
+        is_active AS "isActive", 
+        display_order AS "displayOrder" 
+      FROM product_variants 
+      WHERE product_id = ${product.id} AND is_active = true 
+      ORDER BY display_order ASC
+    `;
+
+    const optionGroupsRows = await sql`
+      SELECT 
+        og.id, 
+        og.name_ar AS "nameAr", 
+        og.name_en AS "nameEn", 
+        og.selection_type AS "selectionType", 
+        og.is_required AS "isRequired", 
+        og.min_selections AS "minSelections", 
+        og.max_selections AS "maxSelections" 
+      FROM option_groups og 
+      JOIN product_option_groups pog ON pog.option_group_id = og.id 
+      WHERE pog.product_id = ${product.id}
+      ORDER BY pog.display_order ASC
+    `;
+
+    const optionGroups = [];
+    for (const og of optionGroupsRows) {
+      const values = await sql`
+        SELECT 
+          id, 
+          name_ar AS "nameAr", 
+          name_en AS "nameEn", 
+          price_modifier::float AS "priceDelta", 
+          is_active AS "isActive", 
+          display_order AS "displayOrder" 
+        FROM option_values 
+        WHERE option_group_id = ${og.id} AND is_active = true 
+        ORDER BY display_order ASC
+      `;
+      optionGroups.push({
+        id: og.id,
+        nameAr: og.nameAr,
+        isRequired: Boolean(og.isRequired),
+        allowMultiple: og.selectionType === 'MULTIPLE',
+        values: values.map((v: any) => ({
+          id: v.id,
+          nameAr: v.nameAr,
+          priceDelta: Number(v.priceDelta || 0),
+          isDefault: false,
+        })),
+      });
+    }
+
     return NextResponse.json({
       success: true,
       message: "Operation successful",
       data: {
         ...product,
-        optionGroups: [],
+        optionGroups,
         addons: [],
-        variants: [],
+        variants,
       },
       timestamp: new Date().toISOString(),
     });

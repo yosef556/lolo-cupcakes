@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
       slug,
       descriptionAr,
       basePrice,
+      productType = "CAKE",
+      sellingUnit = "PIECE",
       prepLeadHours = 2,
       stockQuantity = 50,
       isPreOrder = false,
@@ -23,6 +25,8 @@ export async function POST(req: NextRequest) {
       isCustomizable = false,
       displayOrder = 1,
       primaryImageUrl,
+      variants,
+      options,
     } = body;
 
     // Ensure slug is unique to prevent duplicate key constraint errors
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
         display_order, created_at, updated_at
       ) VALUES (
         ${id}, ${categoryId}, ${finalSlug}, ${nameAr}, ${nameEn || null}, ${descriptionAr || null},
-        'CUPCAKE', 'PIECE', ${basePrice}, ${prepLeadHours},
+        ${productType}, ${sellingUnit}, ${basePrice}, ${prepLeadHours},
         ${stockQuantity}, ${isPreOrder}, ${isActive}, ${isFeatured}, ${isCustomizable},
         ${displayOrder}, NOW(), NOW()
       )
@@ -61,6 +65,42 @@ export async function POST(req: NextRequest) {
         await sql`
           INSERT INTO product_images (id, product_id, storage_key, is_primary, display_order, created_at)
           VALUES (${randomUUID()}, ${id}, ${primaryImageUrl}, true, 1, NOW())
+        `;
+      }
+    }
+
+    if (Array.isArray(variants)) {
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        if (!v.nameAr || !v.nameAr.trim()) continue;
+        const vPrice = v.priceOverride !== undefined && v.priceOverride !== null ? Number(v.priceOverride) : Number(basePrice);
+        await sql`
+          INSERT INTO product_variants (
+            id, product_id, name_ar, name_en, sku, price_override, is_active, display_order, created_at
+          ) VALUES (
+            gen_random_uuid(), ${id}, ${v.nameAr.trim()}, ${v.nameEn?.trim() || null}, ${v.sku || `${finalSlug}-var-${i+1}`},
+            ${vPrice}, ${v.isActive !== false}, ${i + 1}, NOW()
+          )
+        `;
+      }
+    }
+
+    if (Array.isArray(options) && options.length > 0) {
+      const [newOg] = await sql`
+        INSERT INTO option_groups (id, name_ar, name_en, selection_type, is_required, min_selections, max_selections, created_at)
+        VALUES (gen_random_uuid(), 'النكهة والحشوة', 'Flavor & Filling', 'SINGLE', false, 0, 1, NOW())
+        RETURNING id
+      `;
+      await sql`
+        INSERT INTO product_option_groups (product_id, option_group_id, display_order)
+        VALUES (${id}, ${newOg.id}, 1)
+      `;
+      for (let i = 0; i < options.length; i++) {
+        const opt = options[i];
+        if (!opt.nameAr || !opt.nameAr.trim()) continue;
+        await sql`
+          INSERT INTO option_values (id, option_group_id, name_ar, name_en, price_modifier, is_active, display_order, created_at)
+          VALUES (gen_random_uuid(), ${newOg.id}, ${opt.nameAr.trim()}, ${opt.nameEn || null}, ${Number(opt.priceDelta || 0)}, true, ${i + 1}, NOW())
         `;
       }
     }
