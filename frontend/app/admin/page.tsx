@@ -129,10 +129,48 @@ export type AdminTab =
   | "PAYMENTS" 
   | "SLIDERS" 
   | "LOYALTY" 
-  | "SETTINGS" 
+  | "SETTINGS"
   | "CAKES"
   | "CUSTOMERS"
   | "REVIEWS";
+
+export const compressAndGetUrl = (file: File, maxDim = 800, quality = 0.85): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawResult = event.target?.result as string;
+      if (!rawResult) return reject(new Error("ملف فارغ"));
+      const img = new window.Image();
+      img.src = rawResult;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/webp", quality));
+        } else {
+          resolve(rawResult);
+        }
+      };
+      img.onerror = () => resolve(rawResult);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("METRICS");
@@ -299,6 +337,9 @@ export default function AdminDashboardPage() {
   const [uploadingProdImage, setUploadingProdImage] = useState(false);
   const [uploadingEditProdImage, setUploadingEditProdImage] = useState(false);
   const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
+  const [uploadingSlideImage, setUploadingSlideImage] = useState(false);
+  const [uploadingCakeImage, setUploadingCakeImage] = useState(false);
+  const [uploadingFaviconImage, setUploadingFaviconImage] = useState(false);
 
   // Reviews Management State (USER REQUEST: التحكم الكامل في التقييمات المعروضة)
   const [reviews, setReviews] = useState<ReviewItemDto[]>([]);
@@ -5361,16 +5402,42 @@ export default function AdminDashboardPage() {
             <form onSubmit={handleAddHeroSlide} className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200 space-y-3 text-xs">
               <h4 className="font-black text-slate-900">إضافة شريحة جديدة للسلايدر الرئيسي:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">رابط الصورة (URL أو مسار محلي) *:</label>
-                  <input
-                    type="text"
-                    placeholder="/images/hero-dessert.jpg أو رابط ويب"
-                    value={newSlideSrc}
-                    onChange={(e) => setNewSlideSrc(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200 bg-white"
-                    required
-                  />
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block mb-1">صورة الشريحة (رفع من جهازك) 🖼️ *:</label>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 font-bold text-xs text-rose-700 transition shadow-sm">
+                      <Upload className="w-4 h-4 text-rose-500" />
+                      <span>{uploadingSlideImage ? "جاري تجهيز الصورة..." : (newSlideSrc ? "تم اختيار صورة ✓ (تغيير)" : "اختر صورة من جهازك")}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingSlideImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingSlideImage(true);
+                          try {
+                            const res = await compressAndGetUrl(file, 1280, 0.85);
+                            setNewSlideSrc(res);
+                            showToast("تم رفع صورة الشريحة وتجهيزها بنجاح! 📸");
+                          } catch (err: unknown) {
+                            const error = err as Error;
+                            showToast(error.message || "فشل معالجة الصورة", "error");
+                          } finally {
+                            setUploadingSlideImage(false);
+                          }
+                        }}
+                      />
+                    </label>
+                    {newSlideSrc && (
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-rose-300 shrink-0 bg-slate-100 shadow-sm">
+                        <Image src={newSlideSrc} alt="معاينة" fill className="object-cover" />
+                      </div>
+                    )}
+                  </div>
+                  <input type="hidden" value={newSlideSrc} required />
+                  {!newSlideSrc && <p className="text-[10px] text-rose-500 font-bold mt-1">يرجى رفع صورة الشريحة أولاً</p>}
                 </div>
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي للشريحة *:</label>
@@ -5407,7 +5474,8 @@ export default function AdminDashboardPage() {
               <div className="flex justify-end pt-2">
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-xs shadow-md hover:brightness-105 transition flex items-center gap-1.5"
+                  disabled={uploadingSlideImage || !newSlideSrc}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-xs shadow-md hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>إضافة وتفعيل في الصفحة الرئيسية</span>
@@ -5454,16 +5522,42 @@ export default function AdminDashboardPage() {
             <form onSubmit={handleAddCakeSlide} className="p-5 rounded-2xl bg-pink-50/40 border border-pink-200 space-y-3 text-xs">
               <h4 className="font-black text-slate-900">إضافة تورتة جديدة لمعرض الصفحة الرئيسية:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">رابط صورة التورتة *:</label>
-                  <input
-                    type="text"
-                    placeholder="/images/custom-cake-hero.jpg"
-                    value={newCakeSrc}
-                    onChange={(e) => setNewCakeSrc(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white"
-                    required
-                  />
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block mb-1">صورة التورتة (رفع من جهازك) 🎂 *:</label>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white hover:bg-pink-50 border border-pink-300 font-bold text-xs text-pink-700 transition shadow-sm">
+                      <Upload className="w-4 h-4 text-pink-500" />
+                      <span>{uploadingCakeImage ? "جاري تجهيز الصورة..." : (newCakeSrc ? "تم اختيار تورتة ✓ (تغيير)" : "اختر صورة من جهازك")}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingCakeImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingCakeImage(true);
+                          try {
+                            const res = await compressAndGetUrl(file, 1280, 0.85);
+                            setNewCakeSrc(res);
+                            showToast("تم رفع صورة التورتة بنجاح! 🎂");
+                          } catch (err: unknown) {
+                            const error = err as Error;
+                            showToast(error.message || "فشل معالجة الصورة", "error");
+                          } finally {
+                            setUploadingCakeImage(false);
+                          }
+                        }}
+                      />
+                    </label>
+                    {newCakeSrc && (
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-pink-300 shrink-0 bg-slate-100 shadow-sm">
+                        <Image src={newCakeSrc} alt="معاينة" fill className="object-cover" />
+                      </div>
+                    )}
+                  </div>
+                  <input type="hidden" value={newCakeSrc} required />
+                  {!newCakeSrc && <p className="text-[10px] text-pink-500 font-bold mt-1">يرجى رفع صورة التورتة أولاً</p>}
                 </div>
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">عنوان التورتة *:</label>
@@ -5500,7 +5594,8 @@ export default function AdminDashboardPage() {
               <div className="flex justify-end pt-2">
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black text-xs shadow-md hover:brightness-105 transition flex items-center gap-1.5"
+                  disabled={uploadingCakeImage || !newCakeSrc}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black text-xs shadow-md hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>إضافة تورتة العرض</span>
@@ -5606,41 +5701,45 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <h4 className="font-black text-lg text-slate-900">شعار المتجر (Store Logo)</h4>
-                <p className="text-xs text-slate-500">يمكنك رفع صورة الشعار من جهازك مباشرة أو وضع رابط مباشر للصورة</p>
+                <p className="text-xs text-slate-500">رفع صورة الشعار مباشرة من جهازك (كمبيوتر أو موبايل) بدون الحاجة لأي روابط</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
               {/* Preview Box */}
               <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border-2 border-dashed border-rose-300 text-center space-y-3">
-                <span className="text-[11px] font-bold text-slate-400 block">معاينة الشعار الحالي</span>
+                <span className="text-[11px] font-bold text-slate-400 block">معاينة الشعار المعتمد</span>
                 {currentLogo ? (
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden relative border border-rose-200 shadow-sm bg-white">
+                  <div className="w-28 h-28 rounded-2xl overflow-hidden relative border border-rose-200 shadow-sm bg-white p-2">
                     <Image
                       src={currentLogo}
                       alt="لوجو المتجر"
                       fill
-                      className="object-contain p-1"
+                      className="object-contain"
                     />
                   </div>
                 ) : (
-                  <div className="w-24 h-24 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-500 font-black text-xl">
+                  <div className="w-28 h-28 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-500 font-black text-2xl">
                     LC
                   </div>
                 )}
-                <span className="text-xs font-bold text-slate-700">شعار لولو كب كيك</span>
+                <span className="text-xs font-black text-slate-800">شعار لولو كب كيك الحالي</span>
               </div>
 
               {/* Upload Controls */}
               <div className="md:col-span-2 space-y-4">
-                {/* Method 1: File Upload */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    الخيار الأول: رفع ملف صورة من جهازك (PNG / JPG / WEBP)
+                  <label className="text-xs font-black text-slate-800 block mb-2">
+                    رفع وتحديث صورة الشعار من جهازك (PNG / JPG / WEBP) 📸:
                   </label>
-                  <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-rose-200 bg-white hover:bg-rose-50 cursor-pointer transition shadow-sm text-xs font-bold text-rose-600">
-                    <Upload className="w-4 h-4" />
-                    <span>اضغط هنا لاختيار صورة الشعار من الكمبيوتر</span>
+                  <label className="flex flex-col sm:flex-row items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-rose-400 bg-white hover:bg-rose-50/70 cursor-pointer transition shadow-sm text-center sm:text-right group">
+                    <div className="w-14 h-14 rounded-2xl bg-rose-100 group-hover:bg-rose-200 flex items-center justify-center transition shrink-0">
+                      <Upload className="w-7 h-7 text-rose-600" />
+                    </div>
+                    <div>
+                      <span className="block font-black text-sm text-rose-600">اضغط هنا لاختيار صورة اللوجو من جهازك</span>
+                      <span className="text-[11px] text-slate-500 mt-0.5 block">يتم ضغط الصورة وتحديثها تلقائياً وتعميمها فوراً على كل الزوار وقاعدة البيانات</span>
+                    </div>
                     <input
                       type="file"
                       accept="image/*"
@@ -5650,32 +5749,9 @@ export default function AdminDashboardPage() {
                   </label>
                 </div>
 
-                {/* Method 2: Direct URL */}
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    الخيار الثاني: أو الصق رابط صورة الشعار مباشرة (URL)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="url"
-                      placeholder="https://example.com/logo.png"
-                      value={logoInputUrl}
-                      onChange={(e) => setLogoInputUrl(e.target.value)}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSaveLogoUrl}
-                      className="px-5 py-2.5 rounded-xl bg-rose-500 text-white text-xs font-bold hover:bg-rose-600 transition shadow flex items-center gap-1.5 flex-shrink-0"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>تطبيق وحفظ</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-500 leading-relaxed">
-                  💡 عند حفظ الشعار، سيتم تحديثه فوراً في شريط الموقع العلوي وتطبيقه على كل زوار المتجر.
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-[11px] text-slate-700 leading-relaxed flex items-center gap-2.5">
+                  <span className="text-rose-500 text-base">✨</span>
+                  <span><strong>تحديث فوري ولحظي:</strong> بمجرد اختيار الملف يتم ضبط وتعديل الشعار في الهيدر والموبايل وقاعدة البيانات بدون الحاجة لكتابة أي رابط يدوي.</span>
                 </div>
               </div>
             </div>
@@ -5825,20 +5901,13 @@ export default function AdminDashboardPage() {
                   />
                 </div>
 
-                {/* Hero Image with File Upload */}
+                {/* Hero Image with Direct File Upload */}
                 <div className="space-y-1.5">
-                  <label className="font-bold text-[11px] text-slate-600 block">صورة البوست الرئيسي (رابط أو رفع من جهازك) 🖼️:</label>
+                  <label className="font-bold text-[11px] text-slate-700 block">صورة البوست الرئيسي (رفع من جهازك) 🖼️:</label>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="/placeholders/cake-1.jpg أو رابط مباشر"
-                      value={editingSettings["hero_image_url"] ?? (settings.find((s) => s.key === "hero_image_url")?.value || "")}
-                      onChange={(e) => setEditingSettings({ ...editingSettings, hero_image_url: e.target.value })}
-                      className="flex-1 px-3 py-1.5 rounded-xl border border-purple-200 text-xs font-mono"
-                    />
-                    <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold text-xs flex items-center gap-1.5 shrink-0 transition">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold text-xs transition shadow-sm">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingHeroImage ? "جاري الرفع..." : "رفع من الجهاز 📁"}</span>
+                      <span>{uploadingHeroImage ? "جاري المعالجة..." : "اختر صورة البوست من جهازك 📁"}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -5849,18 +5918,28 @@ export default function AdminDashboardPage() {
                           if (!file) return;
                           setUploadingHeroImage(true);
                           try {
-                            const res = await uploadImageFile(file);
+                            const res = await compressAndGetUrl(file, 1280, 0.85);
                             setEditingSettings((prev) => ({ ...prev, hero_image_url: res }));
-                            showToast("تم رفع صورة الهيرو بنجاح! 📸");
+                            showToast("تم اختيار وتجهيز صورة الهيرو بنجاح! 📸 اضغط حفظ تفاصيل الهيرو لاعتمادها");
                           } catch (err: unknown) {
                             const error = err as Error;
-                            showToast(error.message || "فشل رفع الصورة", "error");
+                            showToast(error.message || "فشل معالجة الصورة", "error");
                           } finally {
                             setUploadingHeroImage(false);
                           }
                         }}
                       />
                     </label>
+                    {(editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value) && (
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-purple-200 shrink-0 bg-slate-100 shadow-sm">
+                        <Image
+                          src={editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value || ""}
+                          alt="معاينة الهيرو"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -5934,24 +6013,49 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">رابط أيقونة التبويب بالمتصفح (Favicon URL) 🏷️:</label>
-                  <p className="text-[11px] text-slate-400 mb-1">اللوجو أو الأيقونة المصغرة بجانب اسم المتجر في التبويب (افتراضياً: شعار المتجر)</p>
-                  <input
-                    type="text"
-                    placeholder="/custom-logo.png"
-                    value={editingSettings["store_favicon_url"] ?? (settings.find((s) => s.key === "store_favicon_url")?.value || "")}
-                    onChange={(e) => setEditingSettings({ ...editingSettings, store_favicon_url: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
-                  />
-                  <button
-                    type="button"
-                    disabled={savingSettingKey === "store_favicon_url"}
-                    onClick={() => handleSaveSetting("store_favicon_url")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    {savingSettingKey === "store_favicon_url" ? "جاري الحفظ..." : "حفظ أيقونة التبويب"}
-                  </button>
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 block">أيقونة التبويب بالمتصفح (Favicon) 🏷️:</label>
+                  <p className="text-[11px] text-slate-400 mb-1">اللوجو أو الأيقونة المصغرة بجانب اسم المتجر في التبويب (رفع مباشر من جهازك)</p>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 font-bold text-xs text-rose-700 transition shadow-sm">
+                      <Upload className="w-3.5 h-3.5 text-rose-500" />
+                      <span>{uploadingFaviconImage ? "جاري الحفظ..." : "رفع أيقونة التبويب من جهازك 📁"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingFaviconImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingFaviconImage(true);
+                          try {
+                            const res = await compressAndGetUrl(file, 256, 0.9);
+                            setEditingSettings((prev) => ({ ...prev, store_favicon_url: res }));
+                            await updateStoreSetting("store_favicon_url", res);
+                            try { localStorage.setItem("store_favicon_url", res); } catch {}
+                            broadcastSettingsChange();
+                            showToast("تم رفع وحفظ أيقونة التبويب بنجاح! 🏷️");
+                          } catch (err: unknown) {
+                            const error = err as Error;
+                            showToast(error.message || "فشل رفع الأيقونة", "error");
+                          } finally {
+                            setUploadingFaviconImage(false);
+                          }
+                        }}
+                      />
+                    </label>
+                    {(editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value) && (
+                      <div className="w-9 h-9 rounded-xl overflow-hidden relative border border-rose-300 shrink-0 bg-white p-0.5 shadow-sm">
+                        <Image
+                          src={editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value || ""}
+                          alt="أيقونة التبويب"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>

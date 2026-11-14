@@ -755,6 +755,54 @@ export async function getCustomerOrders(id: string): Promise<any[]> {
 }
 
 export async function uploadImageFile(file: File): Promise<string> {
+  // If file is an image, compress client-side to ensure lightweight storage and instant preview everywhere
+  try {
+    if (typeof window !== "undefined" && file.type.startsWith("image/")) {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const raw = e.target?.result as string;
+          if (!raw) return reject(new Error("فشل قراءة الملف"));
+          const img = new window.Image();
+          img.onload = () => {
+            const maxDim = 1200;
+            let width = img.width;
+            let height = img.height;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return resolve(raw);
+            ctx.drawImage(img, 0, 0, width, height);
+            const quality = 0.85;
+            const webp = canvas.toDataURL("image/webp", quality);
+            if (webp.startsWith("data:image/webp")) {
+              resolve(webp);
+            } else {
+              resolve(canvas.toDataURL("image/jpeg", quality));
+            }
+          };
+          img.onerror = () => resolve(raw);
+          img.src = raw;
+        };
+        reader.onerror = () => reject(new Error("تعذر قراءة الصورة"));
+        reader.readAsDataURL(file);
+      });
+      if (dataUrl) return dataUrl;
+    }
+  } catch (canvasErr) {
+    console.warn("Client compression fallback:", canvasErr);
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch("/api/upload", {

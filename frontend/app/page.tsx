@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getCategories, getProducts, CategoryDto, ProductDto, getFeaturedReviews, ReviewItemDto, createAdminReview } from "@/lib/api";
@@ -26,9 +26,83 @@ import confetti from "canvas-confetti";
 import { playJoyfulChime } from "@/lib/soundFx";
 import ImaginativeHero from "@/components/ImaginativeHero";
 
+function CategorySlideshowCard({
+  cat,
+  images,
+  fallbackImage,
+}: {
+  cat: CategoryDto;
+  images: string[];
+  fallbackImage: string;
+}) {
+  const effectiveImages = images && images.length > 0 ? images : [fallbackImage];
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (effectiveImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % effectiveImages.length);
+    }, 3500); // Transitions every 3.5 seconds
+    return () => clearInterval(interval);
+  }, [effectiveImages.length]);
+
+  const currentImg = effectiveImages[currentIndex % effectiveImages.length];
+
+  return (
+    <Link
+      href={`/shop?category=${cat.slug}`}
+      className="group relative rounded-3xl overflow-hidden glass-dream p-4 border border-pink-100 hover:border-pink-300 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
+    >
+      <div className="aspect-square w-full rounded-2xl overflow-hidden relative mb-3 bg-gradient-to-br from-pink-50 to-sky-50 shadow-inner">
+        <Image
+          key={currentImg}
+          src={currentImg}
+          alt={cat.nameAr}
+          fill
+          className="object-cover group-hover:scale-110 transition-transform duration-700 animate-in fade-in"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
+
+        {/* Dynamic dots for cycling images */}
+        {effectiveImages.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-xs">
+            {effectiveImages.slice(0, 4).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === currentIndex % Math.min(effectiveImages.length, 4)
+                    ? "bg-white w-3"
+                    : "bg-white/50 w-1.5"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Product Count Badge */}
+        {images.length > 0 && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/90 text-white backdrop-blur-xs shadow-xs">
+            {images.length} {images.length === 1 ? "صنف" : "أصناف"} 🍰
+          </span>
+        )}
+      </div>
+
+      <div className="text-center pt-1">
+        <h3 className="font-black text-sm text-slate-900 group-hover:text-pink-600 transition-colors">
+          {cat.nameAr}
+        </h3>
+        <span className="text-[10px] text-slate-500 font-bold block mt-0.5">
+          {cat.nameEn || "Lolo Cupcakes"}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export default function HomePage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductDto[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { promoBannerActive, promoBannerText, cakeSlides: contextCakeSlides, facebookPageUrl } = useStoreSettings();
@@ -82,17 +156,53 @@ export default function HomePage() {
   useEffect(() => {
     Promise.all([
       getCategories().catch(() => []),
-      getProducts({ size: 6 }).catch(() => ({ content: [], totalElements: 0, totalPages: 0 })),
+      getProducts({ size: 100 }).catch(() => ({ content: [], totalElements: 0, totalPages: 0 })),
       getFeaturedReviews().catch(() => [])
     ]).then(([cats, prods, revs]) => {
       setCategories(cats);
-      setFeaturedProducts(prods.content);
+      const list = prods.content || [];
+      setAllProducts(list);
+      setFeaturedProducts(list.slice(0, 6));
       if (Array.isArray(revs) && revs.length > 0) {
         setDynamicReviews(revs);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  // Map each category to all images of products inside this category
+  const categoryImagesMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    allProducts.forEach((p) => {
+      const cat = categories.find((c) => c.id === p.categoryId || (p.categorySlug && c.slug === p.categorySlug));
+      const keys: string[] = [];
+      if (cat?.id) keys.push(cat.id);
+      if (cat?.slug) keys.push(cat.slug);
+      if (p.categoryId && !keys.includes(p.categoryId)) keys.push(p.categoryId);
+      if (p.categorySlug && !keys.includes(p.categorySlug)) keys.push(p.categorySlug);
+
+      if (keys.length === 0) return;
+
+      const imgs: string[] = [];
+      if (p.primaryImageUrl) imgs.push(p.primaryImageUrl);
+      if (p.imageUrl && !imgs.includes(p.imageUrl)) imgs.push(p.imageUrl);
+      if (Array.isArray(p.images)) {
+        p.images.forEach((img) => {
+          if (img && !imgs.includes(img)) imgs.push(img);
+        });
+      }
+
+      keys.forEach((k) => {
+        if (!map[k]) map[k] = [];
+        imgs.forEach((img) => {
+          if (img && !map[k].includes(img)) {
+            map[k].push(img);
+          }
+        });
+      });
+    });
+    return map;
+  }, [allProducts, categories]);
 
   const handleSubmitCustomerReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,39 +385,23 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
           {categories.map((cat, idx) => {
-            const categoryImages = [
+            const fallbackImages = [
               "/placeholders/cupcake-1.jpg",
               "/placeholders/cake-1.jpg",
               "/placeholders/gateau-1.jpg",
               "/placeholders/cupcake-2.jpg",
               "/placeholders/box-1.jpg",
             ];
-            const img = categoryImages[idx % categoryImages.length];
+            const fallback = fallbackImages[idx % fallbackImages.length];
+            const productImages = (categoryImagesMap[cat.id]?.length ? categoryImagesMap[cat.id] : categoryImagesMap[cat.slug]) || [];
 
             return (
-              <Link
+              <CategorySlideshowCard
                 key={cat.id}
-                href={`/shop?category=${cat.slug}`}
-                className="group relative rounded-3xl overflow-hidden glass-dream p-4 border border-pink-100 hover:border-pink-300 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300"
-              >
-                <div className="aspect-square w-full rounded-2xl overflow-hidden relative mb-3 bg-gradient-to-br from-pink-50 to-sky-50">
-                  <Image
-                    src={img}
-                    alt={cat.nameAr}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
-                </div>
-                <div className="text-center pt-1">
-                  <h3 className="font-black text-sm text-slate-900 group-hover:text-pink-600 transition-colors">
-                    {cat.nameAr}
-                  </h3>
-                  <span className="text-[10px] text-slate-500 font-bold block mt-0.5">
-                    {cat.nameEn}
-                  </span>
-                </div>
-              </Link>
+                cat={cat}
+                images={productImages}
+                fallbackImage={fallback}
+              />
             );
           })}
         </div>
