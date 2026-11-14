@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import BrandLogo from "@/components/BrandLogo";
 
 export default function Footer() {
-  const { storePhone, storeAddress, storeWorkingHours } = useStoreSettings();
+  const { storePhone, storeAddress, storeWorkingHours, facebookPageUrl } = useStoreSettings();
   const { user } = useAuth();
 
   return (
@@ -41,6 +41,16 @@ export default function Footer() {
               <li><Link href="/custom-cake" className="hover:text-rose-600 dark:hover:text-pink-400 transition">ورشة التورتة المخصصة</Link></li>
               <li><Link href="/track" className="hover:text-rose-600 dark:hover:text-pink-400 transition">بوابة تتبع الطلب</Link></li>
               <li><Link href="/checkout" className="hover:text-rose-600 dark:hover:text-pink-400 transition">إتمام الطلب السريع</Link></li>
+              <li>
+                <a
+                  href={facebookPageUrl || "https://www.facebook.com/lolo.cupcakes.zayed?locale=ar_AR"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-blue-600 dark:hover:text-sky-400 transition flex items-center gap-1"
+                >
+                  <span>صفحتنا الرسمية على فيسبوك ⓕ</span>
+                </a>
+              </li>
               {user?.isAdmin && (
                 <li>
                   <Link href="/admin" className="hover:text-rose-600 dark:hover:text-pink-400 transition font-bold text-rose-600 dark:text-pink-400">

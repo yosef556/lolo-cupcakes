@@ -62,7 +62,7 @@ function CheckoutContent() {
   const isDirect = searchParams.get("direct") === "1";
 
   const { cart, loading: cartLoading, refreshCart } = useCart();
-  const { cleanWhatsAppNumber, storePhone, storeAddress } = useStoreSettings();
+  const { cleanWhatsAppNumber, storePhone, storeAddress, vodafoneCashNumber, instapayAddress } = useStoreSettings();
   const { user, profile } = useAuth();
 
   // Direct Single-Item Checkout State (USER REQUEST: Buy Now only buys that single item)
@@ -539,8 +539,8 @@ function CheckoutContent() {
         <span className="text-xs font-black text-rose-500 uppercase tracking-wider block mb-1">
           بوابة الحجز والدفع الآمن ⚡
         </span>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-900">إتمام طلبك الملكي</h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">إتمام طلبك الملكي</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           خدمة حجز فورية ومضمونة كزائر دون الحاجة لتسجيل حساب مسبق
         </p>
       </div>
@@ -576,10 +576,10 @@ function CheckoutContent() {
         <div className="lg:col-span-8 space-y-8">
           
           {/* 1. Fulfillment Type Selection */}
-          <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-rose-100 shadow-sm space-y-6">
-            <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+          <div className="bg-white dark:bg-slate-900/90 p-6 sm:p-8 rounded-[32px] border border-rose-100 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+            <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
               <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black flex items-center justify-center text-xs shadow-sm">1</span>
-              <h3 className="font-black text-base text-slate-900">طريقة الاستلام والتوصيل</h3>
+              <h3 className="font-black text-base text-slate-900 dark:text-white">طريقة الاستلام والتوصيل</h3>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -588,16 +588,16 @@ function CheckoutContent() {
                 onClick={() => setFulfillmentType("DELIVERY")}
                 className={`p-4 rounded-2xl border text-right transition flex items-center gap-3 ${
                   fulfillmentType === "DELIVERY"
-                    ? "bg-rose-50/80 border-rose-400 text-slate-900 shadow-sm"
-                    : "bg-white border-rose-100 text-slate-700 hover:bg-rose-50/30"
+                    ? "bg-rose-50/80 dark:bg-rose-950/40 border-rose-400 dark:border-rose-600 text-slate-900 dark:text-white shadow-sm ring-2 ring-rose-400/50"
+                    : "bg-white dark:bg-slate-800/80 border-rose-100 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/30 dark:hover:bg-slate-700/50"
                 }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-rose-500 flex-shrink-0 shadow-sm border border-rose-100">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-rose-500 dark:text-pink-400 flex-shrink-0 shadow-sm border border-rose-100 dark:border-slate-600">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">توصيل مبرد للمنزل</h4>
-                  <p className="text-[11px] text-slate-500">سيارات مبردة لضمان وصول الحلويات طازجة</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">سيارات مبردة لضمان وصول الحلويات طازجة</p>
                 </div>
               </button>
 
@@ -606,16 +606,16 @@ function CheckoutContent() {
                 onClick={() => setFulfillmentType("PICKUP")}
                 className={`p-4 rounded-2xl border text-right transition flex items-center gap-3 ${
                   fulfillmentType === "PICKUP"
-                    ? "bg-rose-50/80 border-rose-400 text-slate-900 shadow-sm"
-                    : "bg-white border-rose-100 text-slate-700 hover:bg-rose-50/30"
+                    ? "bg-rose-50/80 dark:bg-rose-950/40 border-rose-400 dark:border-rose-600 text-slate-900 dark:text-white shadow-sm ring-2 ring-rose-400/50"
+                    : "bg-white dark:bg-slate-800/80 border-rose-100 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/30 dark:hover:bg-slate-700/50"
                 }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-rose-500 flex-shrink-0 shadow-sm border border-rose-100">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-rose-500 dark:text-pink-400 flex-shrink-0 shadow-sm border border-rose-100 dark:border-slate-600">
                   <Store className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">استلام من الفرع</h4>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {currentBranch?.nameAr || storeAddress || "الفرع الرئيسي"} - بدون رسوم توصيل
                   </p>
                 </div>
@@ -628,28 +628,28 @@ function CheckoutContent() {
                 {/* Mandatory GPS Verification Box (USER REQUEST: إجبار اللوكيشن لمنع التحايل) */}
                 <div id="gps-delivery-section" className={`p-4 sm:p-5 rounded-3xl border-2 transition-all duration-300 ${
                   gpsCoords 
-                    ? "bg-emerald-50/80 border-emerald-300 shadow-sm" 
-                    : "bg-gradient-to-r from-rose-50 to-pink-50 border-rose-300 ring-4 ring-rose-100/50 shadow-md"
+                    ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 shadow-sm" 
+                    : "bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border-rose-300 dark:border-rose-800 ring-4 ring-rose-100/50 dark:ring-rose-900/30 shadow-md"
                 }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wide bg-white border shadow-xs">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wide bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
                         {gpsCoords ? (
-                          <span className="text-emerald-700 flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                             تم تأكيد وتثبيت موقع الـ GPS بنجاح ✅
                           </span>
                         ) : (
-                          <span className="text-rose-600 flex items-center gap-1.5 animate-pulse">
-                            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                          <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5 animate-pulse">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                             تحديد موقع الـ GPS إجباري لتأكيد الطلب 📍
                           </span>
                         )}
                       </div>
-                      <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                         {gpsCoords ? "إحداثيات موقعك الجغرافي الدقيق" : "تحديد موقعك الحالي عبر الأقمار الصناعية (GPS)"}
                       </h4>
-                      <p className="text-[11px] text-slate-600 font-medium">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
                         {gpsCoords 
                           ? "سيصل المندوب مباشرة إلى هذا الموقع الدقيق لضمان سرعة الاستلام وسلامة الكعكات المبردة."
                           : "لتفادي أي أخطاء في العنوان أو إلغاء للطلب، يجب تأكيد موقعك الحالي من هاتفك أو جهازك."}
@@ -663,7 +663,7 @@ function CheckoutContent() {
                         disabled={gpsLoading}
                         className={`px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-sm ${
                           gpsCoords
-                            ? "bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50"
+                            ? "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-700"
                             : "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:brightness-110 active:scale-95"
                         } disabled:opacity-50`}
                       >
@@ -674,15 +674,15 @@ function CheckoutContent() {
                   </div>
 
                   {gpsCoords && (
-                    <div className="mt-3 pt-3 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                      <span className="font-bold text-emerald-800">
+                    <div className="mt-3 pt-3 border-t border-emerald-200/60 dark:border-emerald-800/60 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300">
                         📍 الإحداثيات: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
                       </span>
                       <a
                         href={gpsCoords.mapsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="font-black text-emerald-700 hover:text-emerald-900 underline inline-flex items-center gap-1"
+                        className="font-black text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
                       >
                         <span>فتح موقعك على خرائط جوجل 🗺️</span>
                         <ExternalLink className="w-3 h-3" />
@@ -691,7 +691,7 @@ function CheckoutContent() {
                   )}
 
                   {gpsError && (
-                    <div className="mt-2.5 p-2.5 rounded-xl bg-white border border-rose-300 text-xs text-rose-700 font-bold flex items-center gap-2">
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
                       <span>{gpsError}</span>
                     </div>
@@ -705,14 +705,14 @@ function CheckoutContent() {
                 />
 
                 <div>
-                  <label className="text-xs font-bold text-slate-800 block mb-1">منطقة التوصيل المعتمدة *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">منطقة التوصيل المعتمدة *</label>
                   <select
                     value={selectedZoneId}
                     onChange={(e) => setSelectedZoneId(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
                   >
                     {zones.map((zone) => (
-                      <option key={zone.id} value={zone.id}>
+                      <option key={zone.id} value={zone.id} className="dark:bg-slate-800 dark:text-white">
                         {zone.nameAr} — رسوم التوصيل: {zone.deliveryFee.toFixed(2)} ج.م (الحد الأدنى للطلب: {zone.minOrderAmount.toFixed(0)} ج.م)
                       </option>
                     ))}
@@ -721,55 +721,55 @@ function CheckoutContent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-bold text-slate-800 block mb-1">اسم الشارع والعنوان بالتفصيل *</label>
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">اسم الشارع والعنوان بالتفصيل *</label>
                     <input
                       type="text"
                       placeholder="مثال: شارع 9، ميدان فيكتوريا"
                       value={streetAddress}
                       onChange={(e) => setStreetAddress(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                      className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white dark:placeholder-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-800 block mb-1">رقم العقار</label>
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">رقم العقار</label>
                     <input
                       type="text"
                       placeholder="عمارة 15"
                       value={buildingNumber}
                       onChange={(e) => setBuildingNumber(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                      className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white dark:placeholder-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-slate-800 block mb-1">الدور والشقة</label>
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">الدور والشقة</label>
                     <input
                       type="text"
                       placeholder="الدور 3 - شقة 7"
                       value={floorDoor}
                       onChange={(e) => setFloorDoor(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                      className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white dark:placeholder-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-800 block mb-1">علامة مميزة بالقرب منكم</label>
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">علامة مميزة بالقرب منكم</label>
                     <input
                       type="text"
                       placeholder="بجوار صيدلية أو بنك..."
                       value={landmark}
                       onChange={(e) => setLandmark(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                      className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white dark:placeholder-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
                     />
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-100 text-xs text-slate-700 space-y-1">
-                <p className="font-bold text-slate-900">عنوان الفرع المعتمد للاستلام:</p>
+              <div className="p-4 rounded-2xl bg-rose-50/50 dark:bg-slate-800/80 border border-rose-100 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <p className="font-bold text-slate-900 dark:text-white">عنوان الفرع المعتمد للاستلام:</p>
                 <p>{currentBranch?.nameAr || "فرع المعادي الرئيسي"} - {currentBranch?.addressAr || storeAddress || "شارع 9 الرئيسي، المعادي، القاهرة"}</p>
-                <p className="text-[11px] text-slate-500">هاتف الفرع: {currentBranch?.phone || storePhone || "01069915609"}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">هاتف الفرع: {currentBranch?.phone || storePhone || "01042814669"}</p>
               </div>
             )}
           </div>
@@ -781,15 +781,15 @@ function CheckoutContent() {
           />
 
           {/* 3. Scheduling & Time Slot */}
-          <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-rose-100 shadow-sm space-y-5">
-            <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[32px] border border-rose-100 dark:border-slate-800 shadow-sm space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
               <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black flex items-center justify-center text-xs shadow-sm">2</span>
-              <h3 className="font-black text-base text-slate-900">موعد وتوقيت الاستلام المحجوز</h3>
+              <h3 className="font-black text-base text-slate-900 dark:text-white">موعد وتوقيت الاستلام المحجوز</h3>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1.5">تاريخ الاستلام المطلوب *</label>
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1.5">تاريخ الاستلام المطلوب *</label>
                 
                 {/* Quick Date Pills */}
                 <div className="flex items-center gap-2 mb-2.5 flex-wrap">
@@ -816,7 +816,7 @@ function CheckoutContent() {
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm ${
                           isPicked
                             ? "bg-gradient-to-r from-sky-500 to-blue-500 text-white font-black scale-105"
-                            : "bg-white text-slate-700 hover:bg-sky-50 border border-sky-200"
+                            : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-700 border border-sky-200 dark:border-slate-700"
                         }`}
                       >
                         {p.label}
@@ -830,17 +830,17 @@ function CheckoutContent() {
                   min={new Date().toISOString().split("T")[0]}
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-sky-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
+                  className="px-4 py-2.5 rounded-xl border border-sky-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-800 block">الفترة الزمنية المفضلة للتسليم لضمان دقة الخَبز *</label>
-                  <span className="text-[11px] text-pink-600 font-bold">✨ طازج بالموعد المحدد</span>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">الفترة الزمنية المفضلة للتسليم لضمان دقة الخَبز *</label>
+                  <span className="text-[11px] text-pink-600 dark:text-pink-400 font-bold">✨ طازج بالموعد المحدد</span>
                 </div>
                 {slots.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic p-3 rounded-xl bg-rose-50/50 border border-rose-100">لا توجد فترات مجدولة لهذا التاريخ حالياً، يرجى اختيار تاريخ لاحق</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 italic p-3 rounded-xl bg-rose-50/50 dark:bg-slate-800 border border-rose-100 dark:border-slate-700">لا توجد فترات مجدولة لهذا التاريخ حالياً، يرجى اختيار تاريخ لاحق</p>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {slots.map((slot) => {
@@ -855,14 +855,14 @@ function CheckoutContent() {
                           onClick={() => setSelectedSlotId(slot.id)}
                           className={`p-3.5 rounded-2xl border text-right transition flex flex-col justify-between ${
                             !isSlotOpen
-                              ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400"
+                              ? "opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600"
                               : isSelected
                               ? "bg-gradient-to-r from-pink-500 to-sky-500 text-white border-transparent shadow-md scale-102"
-                              : "bg-white border-pink-100 text-slate-800 hover:bg-pink-50/50 hover:border-pink-300"
+                              : "bg-white dark:bg-slate-800 border-pink-100 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-pink-50/50 dark:hover:bg-slate-700/50 hover:border-pink-300 dark:hover:border-slate-600"
                           }`}
                         >
                           <span className="text-xs font-black">{timeLabel}</span>
-                          <span className={`text-[10px] mt-1 font-bold ${isSelected ? "text-white" : "text-slate-500"}`}>
+                          <span className={`text-[10px] mt-1 font-bold ${isSelected ? "text-white" : "text-slate-500 dark:text-slate-400"}`}>
                             {isSlotOpen 
                               ? `متاح (${slot.remainingCapacity} أماكن شاغرة)` 
                               : (slot.remainingCapacity <= 0 ? `مكتمل السعة (${slot.maxCapacity}/${slot.maxCapacity})` : "انتهت فترة اليوم")}
@@ -875,12 +875,12 @@ function CheckoutContent() {
               </div>
 
               {/* Exact Specific Delivery Time Picker & Note (USER REQUEST: specific hour e.g. 8:00 PM for party) */}
-              <div className="pt-3 border-t border-rose-100 space-y-2.5">
+              <div className="pt-3 border-t border-rose-100 dark:border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 block">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                     موعد وتوقيت التسليم المفضل بالتحديد (لمناسبتك وحفلتك) 🎂:
                   </label>
-                  <span className="text-[10px] text-pink-600 font-bold">موصى به للشيف</span>
+                  <span className="text-[10px] text-pink-600 dark:text-pink-400 font-bold">موصى به للشيف</span>
                 </div>
                 
                 {/* Specific time quick presets */}
@@ -900,7 +900,7 @@ function CheckoutContent() {
                       className={`px-3 py-1 rounded-xl text-[11px] font-bold border transition ${
                         specificDeliveryTime === preset
                           ? "bg-rose-500 text-white border-rose-500 shadow-xs"
-                          : "bg-rose-50/70 text-slate-700 border-rose-100 hover:bg-rose-100"
+                          : "bg-rose-50/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-rose-100 dark:border-slate-700 hover:bg-rose-100 dark:hover:bg-slate-700"
                       }`}
                     >
                       {preset}
@@ -913,9 +913,9 @@ function CheckoutContent() {
                   placeholder="مثال: محتاجه يوم 20 الساعة 8 بالليل بالضبط لحفلة عيد ميلاد 🎂"
                   value={specificDeliveryTime}
                   onChange={(e) => setSpecificDeliveryTime(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-xs"
+                  className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-xs"
                 />
-                <p className="text-[10px] text-slate-500 leading-tight">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                   * سيتم تسجيل هذا الموعد الدقيق فورياً في جدول المطبخ والشيف لضمان خروج الكيكة طازجة بالدقيقة لمناسبتك!
                 </p>
               </div>
@@ -924,22 +924,22 @@ function CheckoutContent() {
           </div>
 
           {/* 4. Customer Info */}
-          <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-rose-100 shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[32px] border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
               <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black flex items-center justify-center text-xs shadow-sm">3</span>
-              <h3 className="font-black text-base text-slate-900">بيانات التواصل والتأكيد</h3>
+              <h3 className="font-black text-base text-slate-900 dark:text-white">بيانات التواصل والتأكيد</h3>
             </div>
 
             {/* Guest Checkout Suggestion & Encouragement (USER REQUEST) */}
             {!user && (
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-200/80 text-xs text-amber-900 flex items-start gap-3 shadow-xs">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-pink-50 dark:from-slate-800 dark:to-slate-800/80 border border-pink-200/80 dark:border-slate-700 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-xs">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex-shrink-0 flex items-center justify-center font-bold text-sm shadow-sm">
                   💡
                 </div>
                 <div className="space-y-1">
-                  <span className="font-black text-slate-900 block">أنت تكمل الطلب حالياً كـ زائر (Guest)</span>
-                  <p className="text-slate-600 leading-relaxed font-medium">
-                    يمكنك كتابة بياناتك وإتمام طلبك كزائر مباشرة، ولكن ننصحك بـ <Link href="/login?redirect=/checkout" className="text-pink-600 font-black underline hover:text-pink-700">تسجيل الدخول أو إنشاء حساب</Link> لتجميع نقاط المكافآت التلقائية، وحفظ عناوينك، وتتبع مراحل تجهيز التورتة بنقرة واحدة!
+                  <span className="font-black text-slate-900 dark:text-white block">أنت تكمل الطلب حالياً كـ زائر (Guest)</span>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                    يمكنك كتابة بياناتك وإتمام طلبك كزائر مباشرة، ولكن ننصحك بـ <Link href="/login?redirect=/checkout" className="text-pink-600 dark:text-pink-400 font-black underline hover:text-pink-700">تسجيل الدخول أو إنشاء حساب</Link> لتجميع نقاط المكافآت التلقائية، وحفظ عناوينك، وتتبع مراحل تجهيز التورتة بنقرة واحدة!
                   </p>
                 </div>
               </div>
@@ -947,36 +947,36 @@ function CheckoutContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1.5">الاسم بالكامل *</label>
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1.5">الاسم بالكامل *</label>
                 <input
                   type="text"
                   placeholder="مثال: سارة أحمد"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1.5">رقم الهاتف المصري للتواصل والتأكيد *</label>
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1.5">رقم الهاتف المصري للتواصل والتأكيد *</label>
                 <input
                   type="tel"
                   dir="ltr"
                   placeholder="01012345678"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-xs text-slate-800 text-right focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 text-right focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-800 block mb-1.5">ملاحظات خاصة للشيف (اختياري)</label>
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1.5">ملاحظات خاصة للشيف (اختياري)</label>
               <textarea
                 rows={2}
                 placeholder="تعليمات خاصة بالتسليم أو جملة الإهداء المراد كتابتها..."
                 value={customerNotes}
                 onChange={(e) => setCustomerNotes(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-rose-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
+                className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm"
               />
             </div>
           </div>
@@ -988,10 +988,10 @@ function CheckoutContent() {
           />
 
           {/* 6. Payment Method */}
-          <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-rose-100 shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-rose-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[32px] border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-rose-100 dark:border-slate-800 pb-3">
               <span className="w-7 h-7 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black flex items-center justify-center text-xs shadow-sm">4</span>
-              <h3 className="font-black text-base text-slate-900">طريقة السداد الآمنة</h3>
+              <h3 className="font-black text-base text-slate-900 dark:text-white">طريقة السداد الآمنة</h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1000,15 +1000,15 @@ function CheckoutContent() {
               <label
                 className={`p-4 rounded-2xl border text-right cursor-pointer transition-all flex flex-col justify-between ${
                   paymentMethod === "CASH"
-                    ? "bg-rose-50/90 border-rose-500 text-slate-900 shadow-sm ring-2 ring-rose-400"
-                    : "bg-white border-rose-200 text-slate-700 hover:bg-rose-50/30"
+                    ? "bg-rose-50/90 dark:bg-rose-950/40 border-rose-500 dark:border-rose-600 text-slate-900 dark:text-white shadow-sm ring-2 ring-rose-400 dark:ring-rose-500"
+                    : "bg-white dark:bg-slate-800/80 border-rose-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/30 dark:hover:bg-slate-800"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
                     <Banknote className="w-5 h-5" />
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                     كاش مريح 💵
                   </span>
                 </div>
@@ -1022,7 +1022,7 @@ function CheckoutContent() {
                 />
                 <div>
                   <h4 className="font-black text-xs sm:text-sm">الدفع نقداً عند الاستلام</h4>
-                  <p className="text-[10px] text-slate-500 mt-1">كاش للمندوب عند استلام الكعكة أو من الفرع</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">كاش للمندوب عند استلام الكعكة أو من الفرع</p>
                 </div>
               </label>
 
@@ -1030,15 +1030,15 @@ function CheckoutContent() {
               <label
                 className={`p-4 rounded-2xl border text-right cursor-pointer transition-all flex flex-col justify-between ${
                   paymentMethod === "MANUAL_TRANSFER"
-                    ? "bg-indigo-50/90 border-indigo-500 text-slate-900 shadow-sm ring-2 ring-indigo-400"
-                    : "bg-white border-rose-200 text-slate-700 hover:bg-rose-50/30"
+                    ? "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-500 dark:border-indigo-600 text-slate-900 dark:text-white shadow-sm ring-2 ring-indigo-400 dark:ring-indigo-500"
+                    : "bg-white dark:bg-slate-800/80 border-rose-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-50/30 dark:hover:bg-slate-800"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
                     <Smartphone className="w-5 h-5" />
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                     فودافون كاش / إنستاباي 📱
                   </span>
                 </div>
@@ -1052,7 +1052,7 @@ function CheckoutContent() {
                 />
                 <div>
                   <h4 className="font-black text-xs sm:text-sm">فودافون كاش أو إنستاباي</h4>
-                  <p className="text-[10px] text-slate-500 mt-1">تحويل فوري وإرفاق رقم المحفظة المُرسِل</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">تحويل فوري وإرفاق رقم المحفظة المُرسِل</p>
                 </div>
               </label>
 
@@ -1060,58 +1060,58 @@ function CheckoutContent() {
 
             {/* Dedicated Manual Transfer Instruction & Sender Input Card */}
             {paymentMethod === "MANUAL_TRANSFER" && (
-              <div className="bg-gradient-to-br from-indigo-50/70 via-white to-pink-50/50 p-5 rounded-2xl border border-indigo-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+              <div className="bg-gradient-to-br from-indigo-50/70 via-white to-pink-50/50 dark:from-slate-800/90 dark:via-slate-800/70 dark:to-slate-900/90 p-5 rounded-2xl border border-indigo-200 dark:border-indigo-900/50 space-y-4 animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-1">
-                  <h4 className="font-black text-xs text-indigo-950 flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4 text-indigo-600" />
+                  <h4 className="font-black text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span>بيانات حسابات التحويل المعتمدة لـ Lolo Cupcakes:</span>
                   </h4>
-                  <p className="text-[11px] text-slate-600">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300">
                     يرجى تحويل مبلغ الطلب الإجمالي إلى أحد الحسابات التالية، ثم إدخال رقمك أدناه لتوثيق السداد:
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   {/* Vodafone Cash Box */}
-                  <div className="bg-white p-3.5 rounded-xl border border-indigo-100 shadow-xs flex items-center justify-between">
+                  <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-indigo-100 dark:border-slate-700 shadow-xs flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-bold block">رقم فودافون كاش (Vodafone Cash):</span>
-                      <span className="font-mono font-black text-xs sm:text-sm text-slate-900" dir="ltr">
-                        {storePhone || "01069915609"}
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">رقم فودافون كاش (Vodafone Cash):</span>
+                      <span className="font-mono font-black text-xs sm:text-sm text-slate-900 dark:text-white" dir="ltr">
+                        {vodafoneCashNumber || storePhone || "01069915609"}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText((storePhone || "01069915609").replace(/\s+/g, ''));
+                        navigator.clipboard.writeText((vodafoneCashNumber || storePhone || "01069915609").replace(/\s+/g, ''));
                         setCopyFeedback("VODAFONE");
                         setTimeout(() => setCopyFeedback(null), 2500);
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-[10px] transition flex items-center gap-1"
+                      className="px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 font-bold text-[10px] transition flex items-center gap-1"
                     >
-                      {copyFeedback === "VODAFONE" ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      {copyFeedback === "VODAFONE" ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       <span>{copyFeedback === "VODAFONE" ? "تم النسخ" : "نسخ الرقم"}</span>
                     </button>
                   </div>
 
                   {/* InstaPay Box */}
-                  <div className="bg-white p-3.5 rounded-xl border border-indigo-100 shadow-xs flex items-center justify-between">
+                  <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-indigo-100 dark:border-slate-700 shadow-xs flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-bold block">عنوان إنستاباي (InstaPay IPA):</span>
-                      <span className="font-mono font-black text-xs sm:text-sm text-slate-900" dir="ltr">
-                        lolocupcakes@instapay
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">عنوان إنستاباي (InstaPay IPA):</span>
+                      <span className="font-mono font-black text-xs sm:text-sm text-slate-900 dark:text-white" dir="ltr">
+                        {instapayAddress || "lolocupcakes@instapay"}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText("lolocupcakes@instapay");
+                        navigator.clipboard.writeText((instapayAddress || "lolocupcakes@instapay").trim());
                         setCopyFeedback("INSTAPAY");
                         setTimeout(() => setCopyFeedback(null), 2500);
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-[10px] transition flex items-center gap-1"
+                      className="px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 font-bold text-[10px] transition flex items-center gap-1"
                     >
-                      {copyFeedback === "INSTAPAY" ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      {copyFeedback === "INSTAPAY" ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       <span>{copyFeedback === "INSTAPAY" ? "تم النسخ" : "نسخ الحساب"}</span>
                     </button>
                   </div>
@@ -1119,7 +1119,7 @@ function CheckoutContent() {
 
                 {/* Required: Sender Phone / Wallet */}
                 <div className="space-y-1.5 pt-1">
-                  <label className="font-black text-xs text-slate-800 block">
+                  <label className="font-black text-xs text-slate-800 dark:text-slate-200 block">
                     رقم الهاتف أو المحفظة التي قمت بالتحويل منها (إلزامي للتحقق) <span className="text-rose-500">*</span>:
                   </label>
                   <input
@@ -1128,21 +1128,21 @@ function CheckoutContent() {
                     placeholder="مثال: 010xxxxxxxx أو اسم حساب إنستاباي المُرسِل"
                     value={senderPhoneOrWallet}
                     onChange={(e) => setSenderPhoneOrWallet(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-indigo-200 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-indigo-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
-                  <span className="text-[10px] text-slate-500 block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                     يتم مطابقة هذا الرقم مع كشف حساب المحفظة فورياً لتأكيد طلبك وتجهيزه في الموعد.
                   </span>
                 </div>
 
                 {/* Upload Proof Attachment */}
                 <div className="space-y-1.5 pt-1">
-                  <label className="font-bold text-xs text-slate-700 block">
+                  <label className="font-bold text-xs text-slate-700 dark:text-slate-300 block">
                     إرفاق صورة إشعار أو سكرين شوت التحويل (اختياري / موصى به):
                   </label>
                   <div className="flex items-center gap-3">
-                    <label className="px-4 py-2.5 rounded-xl bg-white border border-indigo-200 hover:bg-indigo-50/50 text-indigo-700 font-bold text-xs cursor-pointer transition flex items-center gap-2 shadow-xs">
-                      <UploadCloud className="w-4 h-4 text-indigo-600" />
+                    <label className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-slate-700 hover:bg-indigo-50/50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 font-bold text-xs cursor-pointer transition flex items-center gap-2 shadow-xs">
+                      <UploadCloud className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       <span>{receiptPreview ? "تغيير صورة الإيصال" : "اختيار صورة الإشعار"}</span>
                       <input
                         type="file"
@@ -1162,8 +1162,8 @@ function CheckoutContent() {
                     </label>
 
                     {receiptPreview && (
-                      <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-xl border border-emerald-200 text-xs font-bold">
-                        <FileCheck className="w-4 h-4 text-emerald-600" />
+                      <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
+                        <FileCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         <span>تم تجهيز الإيصال للإرفاق</span>
                         <button
                           type="button"
@@ -1183,35 +1183,35 @@ function CheckoutContent() {
 
         {/* Right Column: Order Summary & Authoritative Pricing (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-rose-200 shadow-sm space-y-6 sticky top-28">
-            <h3 className="font-black text-base text-slate-900 border-b border-rose-100 pb-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[32px] border border-rose-200 dark:border-slate-800 shadow-sm space-y-6 sticky top-28">
+            <h3 className="font-black text-base text-slate-900 dark:text-white border-b border-rose-100 dark:border-slate-800 pb-4">
               ملخص الطلب والحساب المعتمد ✨
             </h3>
 
             {/* Items Mini List */}
-            <div className="space-y-3 max-h-56 overflow-y-auto divide-y divide-rose-100/60">
+            <div className="space-y-3 max-h-56 overflow-y-auto divide-y divide-rose-100/60 dark:divide-slate-800">
               {cart && cart.items.map((item) => (
                 <div key={item.id} className="pt-2 flex justify-between text-xs">
                   <div>
-                    <span className="font-bold text-slate-900">{item.productNameAr}</span>
-                    <span className="text-slate-500 block">× {item.quantity}</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{item.productNameAr}</span>
+                    <span className="text-slate-500 dark:text-slate-400 block">× {item.quantity}</span>
                   </div>
-                  <span className="font-bold text-slate-900">{item.lineTotal.toFixed(2)} ج.م</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{item.lineTotal.toFixed(2)} ج.م</span>
                 </div>
               ))}
             </div>
 
             {/* Selected Upsell Addons Mini Display */}
             {selectedAddons.length > 0 && (
-              <div className="space-y-1.5 pt-2 border-t border-rose-100 text-xs">
-                <span className="text-[11px] font-bold text-rose-600 block">إضافات الحفلة المختارة:</span>
+              <div className="space-y-1.5 pt-2 border-t border-rose-100 dark:border-slate-800 text-xs">
+                <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 block">إضافات الحفلة المختارة:</span>
                 {selectedAddons.map((id) => {
                   const item = PARTY_ADDONS.find((a) => a.id === id);
                   if (!item) return null;
                   return (
-                    <div key={id} className="flex justify-between text-slate-700 text-[11px]">
+                    <div key={id} className="flex justify-between text-slate-700 dark:text-slate-300 text-[11px]">
                       <span>{item.icon} {item.nameAr}</span>
-                      <span className="font-bold text-rose-600">+{item.price} ج.م</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-400">+{item.price} ج.م</span>
                     </div>
                   );
                 })}
@@ -1219,10 +1219,10 @@ function CheckoutContent() {
             )}
 
             {/* Coupon Code Section */}
-            <div className="space-y-2 pt-2 border-t border-rose-100">
+            <div className="space-y-2 pt-2 border-t border-rose-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 block">كود الخصم الترويجي</label>
-                <span className="text-[10px] text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-md">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">كود الخصم الترويجي</label>
+                <span className="text-[10px] text-rose-500 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">
                   كوبون ترحيبي: LOLO10
                 </span>
               </div>
@@ -1232,7 +1232,7 @@ function CheckoutContent() {
                   placeholder="أدخل الكوبون (مثال: LOLO10)"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-rose-200 text-xs font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-rose-400"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-rose-400"
                 />
                 <button
                   type="button"
@@ -1243,61 +1243,61 @@ function CheckoutContent() {
                 </button>
               </div>
               {appliedCoupon && quote?.appliedCouponCode && (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold mt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>تم تطبيق الكوبون {quote.appliedCouponCode} بنجاح ✨</span>
                 </div>
               )}
             </div>
 
             {/* Authoritative Server Quote Calculation */}
-            <div className="space-y-2 pt-3 border-t border-rose-100 text-xs">
-              <div className="flex justify-between text-slate-500">
+            <div className="space-y-2 pt-3 border-t border-rose-100 dark:border-slate-800 text-xs">
+              <div className="flex justify-between text-slate-500 dark:text-slate-400">
                 <span>المجموع الفرعي للأصناف:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 dark:text-white">
                   {rawSubtotal.toFixed(2)} ج.م
                 </span>
               </div>
 
-              <div className="flex justify-between text-slate-500">
+              <div className="flex justify-between text-slate-500 dark:text-slate-400">
                 <span>رسوم التوصيل:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 dark:text-white">
                   {fulfillmentType === "PICKUP" ? "مجاناً" : `${deliveryFee.toFixed(2)} ج.م`}
                 </span>
               </div>
 
               {addonsTotal > 0 && (
-                <div className="flex justify-between text-slate-700">
+                <div className="flex justify-between text-slate-700 dark:text-slate-300">
                   <span>إجمالي إضافات الاحتفال:</span>
-                  <span className="font-bold text-rose-600">+{addonsTotal.toFixed(2)} ج.م</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">+{addonsTotal.toFixed(2)} ج.م</span>
                 </div>
               )}
 
               {couponDiscount > 0 && (
-                <div className="flex justify-between text-emerald-700 font-bold">
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-bold">
                   <span>خصم الكوبون:</span>
                   <span>- {couponDiscount.toFixed(2)} ج.م</span>
                 </div>
               )}
 
               {loyaltyDiscount > 0 && (
-                <div className="flex justify-between text-amber-700 font-bold">
+                <div className="flex justify-between text-amber-700 dark:text-amber-400 font-bold">
                   <span>خصم مكافآت VIP الملكية:</span>
                   <span>- {loyaltyDiscount.toFixed(2)} ج.م</span>
                 </div>
               )}
 
-              <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-rose-100">
+              <div className="flex justify-between text-base font-black text-slate-900 dark:text-white pt-2 border-t border-rose-100 dark:border-slate-800">
                 <span>الإجمالي النهائي:</span>
-                <span className="text-xl text-rose-600">
-                  {estimatedTotal.toFixed(2)} <span className="text-xs font-bold text-slate-700">ج.م</span>
+                <span className="text-xl text-rose-600 dark:text-rose-400">
+                  {estimatedTotal.toFixed(2)} <span className="text-xs font-bold text-slate-700 dark:text-slate-300">ج.م</span>
                 </span>
               </div>
             </div>
 
             {/* Quote Error Notice */}
             {quoteError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{quoteError}</span>
               </div>
@@ -1305,7 +1305,7 @@ function CheckoutContent() {
 
             {/* Submit Error Notice */}
             {submitError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{submitError}</span>
               </div>
@@ -1313,10 +1313,10 @@ function CheckoutContent() {
 
             {/* Mandatory GPS Reminder Badge if delivery is chosen without GPS */}
             {fulfillmentType === "DELIVERY" && !gpsCoords && (
-              <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-xs text-amber-900 font-bold flex items-start gap-2 shadow-xs animate-in fade-in">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 mt-0.5" />
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 font-bold flex items-start gap-2 shadow-xs animate-in fade-in">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <div>
-                  <span className="block font-black text-amber-950 mb-0.5">⚠️ تحديد موقع الـ GPS إجباري:</span>
+                  <span className="block font-black text-amber-950 dark:text-amber-100 mb-0.5">⚠️ تحديد موقع الـ GPS إجباري:</span>
                   يُرجى الضغط على زر &quot;تحديد موقعي الآن&quot; في قسم التوصيل أعلاه لتأكيد موقعك ومنع التحايل أو إلغاء الطلب.
                 </div>
               </div>
@@ -1341,7 +1341,7 @@ function CheckoutContent() {
               )}
             </button>
 
-            <div className="text-[11px] text-slate-400 text-center leading-relaxed">
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 text-center leading-relaxed">
               * بمجرد التأكيد، يتم حجز موعد الإنتاج فورياً وإرسال رمز التتبع الآمن إليكم.
             </div>
           </div>
@@ -1351,40 +1351,40 @@ function CheckoutContent() {
       {/* Order Confirmation Modal with WhatsApp Share */}
       {completedOrder && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-rose-100 text-center animate-in fade-in zoom-in-95">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-rose-100 dark:border-slate-800 text-center animate-in fade-in zoom-in-95">
             
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner border border-emerald-200 dark:border-emerald-800">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div>
-              <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+              <span className="text-[11px] font-black text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-3 py-1 rounded-full border border-rose-100 dark:border-rose-900">
                 تهانينا! تم حجز طلبك بنجاح ✨
               </span>
-              <h2 className="text-2xl font-black text-slate-900 mt-2">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-2">
                 رقم الطلب: {completedOrder.publicOrderNumber}
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 تم حفظ حجزك في جدول المطبخ فورياً. يرجى الاحتفاظ برمز التتبع أو مشاركته مع فريق الدعم.
               </p>
             </div>
 
-            <div className="bg-rose-50/60 p-4 rounded-2xl border border-rose-100 space-y-2 text-xs text-right">
+            <div className="bg-rose-50/60 dark:bg-slate-800/80 p-4 rounded-2xl border border-rose-100 dark:border-slate-700 space-y-2 text-xs text-right">
               <div className="flex justify-between">
-                <span className="text-slate-500">حالة السداد:</span>
-                <span className="font-bold text-slate-900">{completedOrder.paymentStatusLabelAr}</span>
+                <span className="text-slate-500 dark:text-slate-400">حالة السداد:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{completedOrder.paymentStatusLabelAr}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">حالة الطلب:</span>
-                <span className="font-bold text-slate-900">{completedOrder.orderStatusLabelAr}</span>
+                <span className="text-slate-500 dark:text-slate-400">حالة الطلب:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{completedOrder.orderStatusLabelAr}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">الموعد المحدد:</span>
-                <span className="font-bold text-slate-900">{completedOrder.scheduledForDate} ({completedOrder.scheduledForTimeRange})</span>
+                <span className="text-slate-500 dark:text-slate-400">الموعد المحدد:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{completedOrder.scheduledForDate} ({completedOrder.scheduledForTimeRange})</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">المبلغ الإجمالي:</span>
-                <span className="font-black text-rose-600">{completedOrder.totalAmount.toFixed(2)} ج.م</span>
+                <span className="text-slate-500 dark:text-slate-400">المبلغ الإجمالي:</span>
+                <span className="font-black text-rose-600 dark:text-rose-400">{completedOrder.totalAmount.toFixed(2)} ج.م</span>
               </div>
             </div>
 

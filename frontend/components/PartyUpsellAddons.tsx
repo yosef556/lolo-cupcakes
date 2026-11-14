@@ -26,17 +26,17 @@ interface PartyUpsellAddonsProps {
 
 export default function PartyUpsellAddons({ selectedAddonIds, onToggleAddon }: PartyUpsellAddonsProps) {
   return (
-    <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm space-y-3.5">
+    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-3.5">
       
-      <div className="flex items-center justify-between border-b border-rose-100 pb-2.5">
+      <div className="flex items-center justify-between border-b border-rose-100 dark:border-slate-800 pb-2.5">
         <div className="flex items-center gap-2">
           <span className="text-base">🎉</span>
           <div>
-            <h4 className="font-black text-xs sm:text-sm text-slate-900">أكمل احتفالك بلحظة لا تُنسى ✨</h4>
-            <span className="text-[10px] text-slate-500">إضافات حصرية وتجهيزات مناسبات بأسعار رمزية</span>
+            <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">أكمل احتفالك بلحظة لا تُنسى ✨</h4>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">إضافات حصرية وتجهيزات مناسبات بأسعار رمزية</span>
           </div>
         </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
           خصم خاص مع الطلب
         </span>
       </div>
@@ -50,24 +50,24 @@ export default function PartyUpsellAddons({ selectedAddonIds, onToggleAddon }: P
               onClick={() => onToggleAddon(item)}
               className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between select-none ${
                 isSelected
-                  ? "bg-rose-50 border-rose-500 shadow-sm"
-                  : "bg-white border-rose-100 hover:bg-rose-50/40"
+                  ? "bg-rose-50 dark:bg-rose-950/40 border-rose-500 dark:border-rose-600 shadow-sm"
+                  : "bg-white dark:bg-slate-800/80 border-rose-100 dark:border-slate-700 hover:bg-rose-50/40 dark:hover:bg-slate-800"
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-xl flex-shrink-0">{item.icon}</span>
                 <div className="min-w-0">
-                  <div className="font-bold text-xs text-slate-900 truncate">{item.nameAr}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{item.description}</div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{item.nameAr}</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-400 truncate">{item.description}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0 pr-2">
-                <span className="font-black text-xs text-rose-600">+{item.price} ج.م</span>
+                <span className="font-black text-xs text-rose-600 dark:text-rose-400">+{item.price} ج.م</span>
                 <button
                   type="button"
                   className={`w-6 h-6 rounded-lg flex items-center justify-center transition ${
-                    isSelected ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-600"
+                    isSelected ? "bg-rose-500 text-white" : "bg-rose-100 dark:bg-slate-700 text-rose-600 dark:text-rose-400"
                   }`}
                 >
                   {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}

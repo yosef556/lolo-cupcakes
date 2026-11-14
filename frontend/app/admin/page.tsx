@@ -112,6 +112,7 @@ import Link from "next/link";
 import { playJoyfulChime } from "@/lib/soundFx";
 import { useAuth } from "@/context/AuthContext";
 import BrandLogo from "@/components/BrandLogo";
+import { broadcastSettingsChange } from "@/components/StoreSettingsContext";
 
 export type AdminTab = 
   | "METRICS" 
@@ -762,6 +763,41 @@ export default function AdminDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, orderStatusFilter, paymentStatusFilter, cakeStatusFilter, loadCatalogData]);
 
+  // Real-time synchronization polling (every 12 seconds & on window focus)
+  useEffect(() => {
+    const silentRefresh = () => {
+      refreshMetrics();
+      if (activeTab === "ORDERS") {
+        getAdminOrders(orderStatusFilter || undefined)
+          .then((res) => setOrders(res.content))
+          .catch(() => {});
+      } else if (activeTab === "PAYMENTS") {
+        getAdminPayments(paymentStatusFilter || undefined)
+          .then(setPayments)
+          .catch(() => {});
+      } else if (activeTab === "CAKES") {
+        getAdminCustomCakes(cakeStatusFilter || undefined)
+          .then((res) => setCakes(res.content))
+          .catch(() => {});
+      } else if (activeTab === "CUSTOMERS") {
+        getAdminCustomers()
+          .then(setCustomers)
+          .catch(() => {});
+      }
+    };
+
+    const interval = setInterval(silentRefresh, 12000);
+    const handleFocus = () => silentRefresh();
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [activeTab, orderStatusFilter, paymentStatusFilter, cakeStatusFilter, refreshMetrics]);
+
   // Delivery Zones Handlers (USER REQUEST: Full CRUD controlled by admin)
   const loadAdminZones = useCallback(async () => {
     setZonesLoading(true);
@@ -902,8 +938,10 @@ export default function AdminDashboardPage() {
     localStorage.setItem("store_hero_slides", JSON.stringify(updated));
     try {
       await updateStoreSetting("hero_slides", JSON.stringify(updated));
+      broadcastSettingsChange();
       showToast("تم حفظ شريحة الهيرو في قاعدة البيانات السحابية وتطبيقها بنجاح! 🖼️");
     } catch {
+      broadcastSettingsChange();
       showToast("تم حفظ شريحة الهيرو بنجاح! 🖼️");
     }
     setNewSlideSrc("");
@@ -916,8 +954,10 @@ export default function AdminDashboardPage() {
     localStorage.setItem("store_hero_slides", JSON.stringify(updated));
     try {
       await updateStoreSetting("hero_slides", JSON.stringify(updated));
+      broadcastSettingsChange();
       showToast("تم حذف شريحة الهيرو وتحديث قاعدة البيانات بنجاح 🗑️");
     } catch {
+      broadcastSettingsChange();
       showToast("تم حذف شريحة الهيرو بنجاح 🗑️");
     }
   };
@@ -938,8 +978,10 @@ export default function AdminDashboardPage() {
     localStorage.setItem("store_cake_slides", JSON.stringify(updated));
     try {
       await updateStoreSetting("cake_slides", JSON.stringify(updated));
+      broadcastSettingsChange();
       showToast("تم حفظ تورتة العرض في قاعدة البيانات وتطبيقها بنجاح! 🎂");
     } catch {
+      broadcastSettingsChange();
       showToast("تمت إضافة شريحة التورتة بنجاح! 🎂");
     }
     setNewCakeSrc("");
@@ -953,8 +995,10 @@ export default function AdminDashboardPage() {
     localStorage.setItem("store_cake_slides", JSON.stringify(updated));
     try {
       await updateStoreSetting("cake_slides", JSON.stringify(updated));
+      broadcastSettingsChange();
       showToast("تم حذف شريحة التورتة وتحديث قاعدة البيانات بنجاح 🗑️");
     } catch {
+      broadcastSettingsChange();
       showToast("تم حذف شريحة التورتة بنجاح 🗑️");
     }
   };
@@ -1106,7 +1150,8 @@ export default function AdminDashboardPage() {
         const formatted = cleanDigits.startsWith("01") ? "2" + cleanDigits : cleanDigits;
         await updateStoreSetting("contact_whatsapp", formatted).catch(() => {});
       }
-      showToast(`تم حفظ وتطبيق "${key}" بنجاح في كامل النظام! ✨`);
+      broadcastSettingsChange();
+      showToast(`تم حفظ وتطبيق "${key}" بنجاح في كامل النظام لحظياً! ✨`);
     } catch (err: unknown) {
       const error = err as Error;
       showToast(error.message || "فشل حفظ الإعداد", "error");
@@ -1131,7 +1176,8 @@ export default function AdminDashboardPage() {
         const formatted = clean.startsWith("01") ? "2" + clean : clean;
         await updateStoreSetting("contact_whatsapp", formatted).catch(() => {});
       }
-      showToast("تم حفظ واعتماد كافة إعدادات المتجر وبيانات التواصل بنجاح! ✨");
+      broadcastSettingsChange();
+      showToast("تم حفظ واعتماد كافة إعدادات المتجر وبيانات التواصل بنجاح في كامل الموقع! ✨");
     } catch (err: unknown) {
       const error = err as Error;
       showToast(error.message || "فشل حفظ جميع الإعدادات", "error");
@@ -1147,10 +1193,12 @@ export default function AdminDashboardPage() {
       await updateStoreSetting("store_logo_url", logoInputUrl.trim());
       localStorage.setItem("store_logo_url", logoInputUrl.trim());
       setCurrentLogo(logoInputUrl.trim());
-      showToast("تم تحديث وحفظ شعار المتجر بنجاح! 🎨");
+      broadcastSettingsChange();
+      showToast("تم تحديث وحفظ شعار المتجر بنجاح في كامل الموقع والصفحات! 🎨");
     } catch {
       localStorage.setItem("store_logo_url", logoInputUrl.trim());
       setCurrentLogo(logoInputUrl.trim());
+      broadcastSettingsChange();
       showToast("تم حفظ الشعار في المتصفح بنجاح! 🎨");
     }
   };
@@ -1160,16 +1208,52 @@ export default function AdminDashboardPage() {
     if (file) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setCurrentLogo(result);
-          setLogoInputUrl(result);
-          localStorage.setItem("store_logo_url", result);
+        const rawResult = event.target?.result as string;
+        if (!rawResult) return;
+
+        // Compress / resize to max 512x512 via Canvas to prevent heavy payloads breaking mobile
+        const img = new Image();
+        img.src = rawResult;
+        img.onload = async () => {
+          const maxDim = 512;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const optimized = canvas.toDataURL("image/png", 0.9);
+            setCurrentLogo(optimized);
+            setLogoInputUrl(optimized);
+            try { localStorage.setItem("store_logo_url", optimized); } catch {}
+            try {
+              await updateStoreSetting("store_logo_url", optimized);
+            } catch {}
+            broadcastSettingsChange();
+            showToast("تم رفع وضغط وتطبيق الشعار الجديد بنجاح في كامل أجهزة والموقع! 🎨");
+            return;
+          }
+          // Fallback if canvas is not available
+          setCurrentLogo(rawResult);
+          setLogoInputUrl(rawResult);
+          try { localStorage.setItem("store_logo_url", rawResult); } catch {}
           try {
-            await updateStoreSetting("store_logo_url", result);
+            await updateStoreSetting("store_logo_url", rawResult);
           } catch {}
+          broadcastSettingsChange();
           showToast("تم رفع وتطبيق الشعار الجديد بنجاح! 🎨");
-        }
+        };
       };
       reader.readAsDataURL(file);
     }

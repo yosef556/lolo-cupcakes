@@ -31,7 +31,7 @@ export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
-  const { promoBannerActive, promoBannerText, cakeSlides: contextCakeSlides } = useStoreSettings();
+  const { promoBannerActive, promoBannerText, cakeSlides: contextCakeSlides, facebookPageUrl } = useStoreSettings();
 
   // Dynamic Customer Reviews State (USER REQUEST: التحكم الكامل بآراء وتقييمات العملاء المعروضة)
   const [dynamicReviews, setDynamicReviews] = useState<ReviewItemDto[]>([]);
@@ -551,7 +551,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <a
-              href="https://facebook.com/lolocupcakes.official"
+              href={facebookPageUrl || "https://www.facebook.com/lolo.cupcakes.zayed?locale=ar_AR"}
               target="_blank"
               rel="noreferrer"
               className="px-8 py-4 rounded-2xl bg-white text-blue-700 font-black text-sm shadow-lg hover:bg-blue-50 active:scale-95 transition flex items-center gap-3 btn-pop"

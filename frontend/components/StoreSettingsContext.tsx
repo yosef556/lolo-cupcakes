@@ -85,6 +85,8 @@ export interface StoreSettingsContextValue {
   storeLogoUrl: string;
   facebookPageUrl: string;
   facebookPageId: string;
+  vodafoneCashNumber: string;
+  instapayAddress: string;
   minOrderAmount: number;
   heroTitle: string;
   heroSubtitle: string;
@@ -96,6 +98,16 @@ export interface StoreSettingsContextValue {
   heroSlides: HeroSlideDto[];
   cakeSlides: CakeSlideDto[];
   refreshSettings: () => Promise<void>;
+}
+
+export function broadcastSettingsChange() {
+  if (typeof window !== "undefined") {
+    try {
+      const channel = new BroadcastChannel("lolo_settings_channel");
+      channel.postMessage({ type: "SETTINGS_UPDATED", timestamp: Date.now() });
+      channel.close();
+    } catch {}
+  }
 }
 
 function formatCleanEgyptianNumber(raw?: string, fallback = "201016197035"): string {
@@ -112,16 +124,18 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue>({
   settings: {},
   loading: true,
   storeName: "لولو كب كيك",
-  storePhone: "01069915609",
-  contactWhatsApp: "201016197035",
-  cleanWhatsAppNumber: "201016197035",
-  managerWhatsApp: "01069915609",
-  cleanManagerWhatsAppNumber: "201069915609",
-  storeAddress: "الشيخ زايد، الجيزة، مصر",
+  storePhone: "01042814669",
+  contactWhatsApp: "201042814669",
+  cleanWhatsAppNumber: "201042814669",
+  managerWhatsApp: "01042814669",
+  cleanManagerWhatsAppNumber: "201042814669",
+  storeAddress: "الحي الحادي عشر بجوار سوبر ماركت الاسواني ، قسم ثان الشيخ زايد، محافظة الجيزة",
   storeWorkingHours: "يومياً من 9:00 صباحاً حتى 11:30 مساءً",
-  storeLogoUrl: "",
+  storeLogoUrl: "/custom-logo.png",
   facebookPageUrl: "https://www.facebook.com/lolo.cupcakes.zayed?locale=ar_AR",
   facebookPageId: "109283746592817",
+  vodafoneCashNumber: "01042814669",
+  instapayAddress: "01042814669",
   minOrderAmount: 150,
   heroTitle: "أشهى الحلويات والتورتات المخبوزة طازجة اليوم",
   heroSubtitle: "نكهات أصيلة، مكونات فاخرة طبيعية 100%، وتوصيل دقيق لكافة مناطق القاهرة والشيخ زايد",
@@ -154,18 +168,52 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     fetchSettings();
+
+    if (typeof window === "undefined") return;
+
+    // 1. Instant cross-tab sync via BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel("lolo_settings_channel");
+      channel.onmessage = (event) => {
+        if (event.data?.type === "SETTINGS_UPDATED") {
+          fetchSettings();
+        }
+      };
+    } catch {}
+
+    // 2. Tab focus & visibility revalidation (re-sync instantly when user switches back to tab or mobile app)
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        fetchSettings();
+      }
+    };
+    window.addEventListener("focus", onVisibilityOrFocus);
+    document.addEventListener("visibilitychange", onVisibilityOrFocus);
+
+    // 3. Periodic light background poll (every 20 seconds)
+    const interval = setInterval(fetchSettings, 20000);
+
+    return () => {
+      channel?.close();
+      window.removeEventListener("focus", onVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", onVisibilityOrFocus);
+      clearInterval(interval);
+    };
   }, [fetchSettings]);
 
   const value = useMemo<StoreSettingsContextValue>(() => {
     const storeName = settings["store_name_ar"]?.trim() || "لولو كب كيك";
-    const storePhone = settings["store_phone"]?.trim() || settings["contact_phone"]?.trim() || "01069915609";
-    const contactWhatsApp = settings["contact_whatsapp"]?.trim() || "201016197035";
+    const storePhone = settings["store_phone"]?.trim() || settings["contact_phone"]?.trim() || "01042814669";
+    const contactWhatsApp = settings["contact_whatsapp"]?.trim() || "201042814669";
     const managerWhatsApp = settings["store_manager_whatsapp"]?.trim() || storePhone;
-    const storeAddress = settings["store_address_ar"]?.trim() || "الشيخ زايد، الجيزة، مصر";
+    const storeAddress = settings["store_address_ar"]?.trim() || "الحي الحادي عشر بجوار سوبر ماركت الاسواني ، قسم ثان الشيخ زايد، محافظة الجيزة";
     const storeWorkingHours = settings["store_working_hours"]?.trim() || "يومياً من 9:00 صباحاً حتى 11:30 مساءً";
-    const storeLogoUrl = settings["store_logo_url"]?.trim() || "";
+    const storeLogoUrl = settings["store_logo_url"]?.trim() || "/custom-logo.png";
     const facebookPageUrl = settings["facebook_page_url"]?.trim() || "https://www.facebook.com/lolo.cupcakes.zayed?locale=ar_AR";
     const facebookPageId = settings["facebook_page_id"]?.trim() || "109283746592817";
+    const vodafoneCashNumber = settings["payment_vodafone_cash_number"]?.trim() || storePhone;
+    const instapayAddress = settings["payment_instapay_address"]?.trim() || storePhone;
     const minOrderAmount = parseFloat(settings["min_order_amount"] || "150") || 150;
     const heroTitle = settings["hero_title"]?.trim() || "أشهى الحلويات والتورتات المخبوزة طازجة اليوم";
     const heroSubtitle = settings["hero_subtitle"]?.trim() || "نكهات أصيلة، مكونات فاخرة طبيعية 100%، وتوصيل دقيق لكافة مناطق القاهرة والشيخ زايد";
@@ -197,14 +245,16 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
       storeName,
       storePhone,
       contactWhatsApp,
-      cleanWhatsAppNumber: formatCleanEgyptianNumber(contactWhatsApp, "201016197035"),
+      cleanWhatsAppNumber: formatCleanEgyptianNumber(contactWhatsApp, "201042814669"),
       managerWhatsApp,
-      cleanManagerWhatsAppNumber: formatCleanEgyptianNumber(managerWhatsApp, "201069915609"),
+      cleanManagerWhatsAppNumber: formatCleanEgyptianNumber(managerWhatsApp, "201042814669"),
       storeAddress,
       storeWorkingHours,
       storeLogoUrl,
       facebookPageUrl,
       facebookPageId,
+      vodafoneCashNumber,
+      instapayAddress,
       minOrderAmount,
       heroTitle,
       heroSubtitle,

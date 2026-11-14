@@ -132,17 +132,17 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
   };
 
   return (
-    <div className="bg-gradient-to-br from-rose-50/60 via-white to-pink-50/40 p-5 rounded-3xl border border-rose-200/90 shadow-sm space-y-4 text-slate-800">
+    <div className="bg-gradient-to-br from-rose-50/60 via-white to-pink-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-900/80 p-5 rounded-3xl border border-rose-200/90 dark:border-slate-800 shadow-sm space-y-4 text-slate-800 dark:text-slate-200">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rose-100 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rose-100 dark:border-slate-800 pb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 text-white flex items-center justify-center shadow-xs">
             <Compass className="w-4 h-4 animate-spin-slow" />
           </div>
           <div>
-            <h4 className="font-black text-xs sm:text-sm text-slate-900">تحديد موقع التوصيل الجغرافي بدقة (GPS) 📍</h4>
-            <span className="text-[10px] text-slate-500">نقل مبرد لضمان وصول الكعكات سليمة وطازجة</span>
+            <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">تحديد موقع التوصيل الجغرافي بدقة (GPS) 📍</h4>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">نقل مبرد لضمان وصول الكعكات سليمة وطازجة</span>
           </div>
         </div>
 
@@ -151,7 +151,7 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
           type="button"
           onClick={handleGpsLocate}
           disabled={isLocating}
-          className="px-4 py-2 rounded-xl bg-white border border-rose-300 hover:border-rose-400 hover:bg-rose-50 text-rose-600 text-xs font-black transition flex items-center gap-1.5 shadow-sm self-start sm:self-auto active:scale-95 disabled:opacity-50"
+          className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-rose-300 dark:border-slate-700 hover:border-rose-400 dark:hover:border-slate-600 hover:bg-rose-50 dark:hover:bg-slate-700 text-rose-600 dark:text-rose-400 text-xs font-black transition flex items-center gap-1.5 shadow-sm self-start sm:self-auto active:scale-95 disabled:opacity-50"
         >
           <Navigation className={`w-3.5 h-3.5 ${isLocating ? "animate-spin text-rose-500" : ""}`} />
           <span>{isLocating ? "جاري الالتقاط..." : "تحديد موقعي التلقائي (GPS) 🎯"}</span>
@@ -160,14 +160,14 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
 
       {/* Status Notice */}
       {locationStatus && (
-        <div className="p-3 rounded-2xl bg-white border border-pink-200 text-xs font-bold text-slate-700 flex items-center gap-2 shadow-xs">
+        <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-pink-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 shadow-xs">
           <MapPin className="w-4 h-4 text-pink-500 flex-shrink-0" />
           <span>{locationStatus}</span>
         </div>
       )}
 
       {/* Interactive Map Visual Pin with OpenStreetMap Embed */}
-      <div className="relative h-48 w-full rounded-2xl overflow-hidden border border-rose-200 shadow-inner bg-slate-100">
+      <div className="relative h-48 w-full rounded-2xl overflow-hidden border border-rose-200 dark:border-slate-700 shadow-inner bg-slate-100 dark:bg-slate-950">
         <iframe
           title="Delivery Location Map"
           width="100%"
@@ -181,13 +181,13 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
         />
 
         {/* Map Overlay Badge */}
-        <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-pink-200 shadow-sm text-[11px] font-black text-slate-900 flex items-center gap-1.5">
+        <div className="absolute top-3 right-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-pink-200 dark:border-slate-700 shadow-sm text-[11px] font-black text-slate-900 dark:text-white flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
           <span>إحداثيات: {currentCoords.lat.toFixed(4)}, {currentCoords.lng.toFixed(4)}</span>
         </div>
 
         {detectedAddress && (
-          <div className="absolute bottom-3 inset-x-3 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-pink-200 shadow-sm text-[11px] text-slate-800 flex items-center justify-between gap-2">
+          <div className="absolute bottom-3 inset-x-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2.5 rounded-xl border border-pink-200 dark:border-slate-700 shadow-sm text-[11px] text-slate-800 dark:text-slate-100 flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 truncate">
               <MapPin className="w-3.5 h-3.5 text-pink-600 flex-shrink-0" />
               <span className="font-bold truncate">{detectedAddress}</span>
@@ -196,7 +196,7 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
               href={`https://maps.google.com/?q=${currentCoords.lat},${currentCoords.lng}`}
               target="_blank"
               rel="noreferrer"
-              className="px-2 py-0.5 rounded-lg bg-pink-100 text-pink-700 font-bold text-[10px] hover:bg-pink-200 transition flex items-center gap-1 flex-shrink-0"
+              className="px-2 py-0.5 rounded-lg bg-pink-100 dark:bg-slate-800 text-pink-700 dark:text-pink-300 font-bold text-[10px] hover:bg-pink-200 dark:hover:bg-slate-700 transition flex items-center gap-1 flex-shrink-0"
             >
               <span>فتح بجوجل ماب</span>
               <ExternalLink className="w-2.5 h-2.5" />
@@ -207,7 +207,7 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
 
       {/* Quick Neighborhood Picker */}
       <div className="space-y-2">
-        <label className="text-[11px] font-bold text-slate-600 block">
+        <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block">
           أو اختر منطقتك السكنية بالقاهرة الكبرى للتحديد السريع:
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -221,17 +221,17 @@ export default function DeliveryLocationPicker({ onLocationSelect, selectedZoneN
                 className={`p-2.5 rounded-2xl border text-right transition-all flex flex-col justify-between ${
                   isSelected
                     ? "bg-rose-500 text-white border-rose-600 shadow-sm"
-                    : "bg-white border-rose-200 hover:bg-rose-50/50 text-slate-700"
+                    : "bg-white dark:bg-slate-800 border-rose-200 dark:border-slate-700 hover:bg-rose-50/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                 }`}
               >
                 <div className="flex items-center justify-between w-full mb-1">
-                  <span className={`text-[10px] font-bold ${isSelected ? "text-rose-100" : "text-slate-500"}`}>
+                  <span className={`text-[10px] font-bold ${isSelected ? "text-rose-100" : "text-slate-500 dark:text-slate-400"}`}>
                     {item.speed}
                   </span>
                   {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                 </div>
                 <span className="font-black text-xs line-clamp-1">{item.name}</span>
-                <span className={`text-[10px] mt-0.5 font-bold ${isSelected ? "text-rose-100" : "text-rose-600"}`}>
+                <span className={`text-[10px] mt-0.5 font-bold ${isSelected ? "text-rose-100" : "text-rose-600 dark:text-rose-400"}`}>
                   توصيل: {item.fee} ج.م
                 </span>
               </button>
