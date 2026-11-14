@@ -16,6 +16,7 @@ import {
   Clock, 
   Heart, 
   ChevronRight, 
+  ChevronLeft,
   ZoomIn, 
   ZoomOut, 
   Maximize2, 
@@ -42,6 +43,7 @@ export default function ProductDetailPage() {
   const productId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [product, setProduct] = useState<ProductDto | null>(null);
+  const [activeImageUrl, setActiveImageUrl] = useState<string>("");
   const [selectedVariantId, setSelectedVariantId] = useState<string>("");
   const [relatedProducts, setRelatedProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +92,8 @@ export default function ProductDetailPage() {
         if (data.variants && data.variants.length > 0) {
           setSelectedVariantId(data.variants[0].id);
         }
+        const initialImg = data.primaryImageUrl || (data.images && data.images[0]) || getProductImage(data);
+        setActiveImageUrl(initialImg);
         // Load related products from the same category or overall catalog
         getProducts({ size: 4 })
           .then((res) => {
@@ -129,6 +133,31 @@ export default function ProductDetailPage() {
     if (prod.slug?.includes("gateau") || prod.slug?.includes("pistachio")) return "/placeholders/gateau-1.jpg";
     return "/placeholders/cupcake-1.jpg";
   };
+
+  // USER REQUEST: صور متعددة وصور مخصصة للنكهات والأنواع
+  const allGalleryImages = React.useMemo(() => {
+    if (!product) return [];
+    const set = new Set<string>();
+    const prim = product.primaryImageUrl || (product.images && product.images[0]) || getProductImage(product);
+    if (prim) set.add(prim);
+    if (Array.isArray(product.images)) {
+      product.images.forEach((img) => { if (img && img.trim()) set.add(img.trim()); });
+    }
+    if (Array.isArray(product.galleryImages)) {
+      product.galleryImages.forEach((img) => { if (img && img.trim()) set.add(img.trim()); });
+    }
+    if (Array.isArray(product.variants)) {
+      product.variants.forEach((v) => { if (v.imageUrl && v.imageUrl.trim()) set.add(v.imageUrl.trim()); });
+    }
+    if (Array.isArray(product.optionGroups)) {
+      product.optionGroups.forEach((og) => {
+        og.values?.forEach((val) => { if (val.imageUrl && val.imageUrl.trim()) set.add(val.imageUrl.trim()); });
+      });
+    }
+    return Array.from(set);
+  }, [product]);
+
+  const currentDisplayImage = activeImageUrl || (product ? (product.primaryImageUrl || getProductImage(product)) : "/placeholders/cupcake-1.jpg");
 
   const selectedVariant = product?.variants?.find((v) => v.id === selectedVariantId);
   const currentUnitPrice = selectedVariant?.priceOverride !== undefined && selectedVariant?.priceOverride !== null
@@ -255,7 +284,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const imageUrl = getProductImage(product);
+  const imageUrl = currentDisplayImage;
   const leadTimeHours = product.prepLeadHours || product.leadTimeHours || 2;
 
   return (
@@ -366,6 +395,38 @@ export default function ProductDetailPage() {
                 }}
               />
 
+              {/* Prev / Next Arrows for Gallery */}
+              {allGalleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const curIdx = allGalleryImages.indexOf(imageUrl);
+                      const prevIdx = (curIdx - 1 + allGalleryImages.length) % allGalleryImages.length;
+                      setActiveImageUrl(allGalleryImages[prevIdx]);
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-md flex items-center justify-center transition hover:scale-110 z-20"
+                    title="الصورة السابقة"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const curIdx = allGalleryImages.indexOf(imageUrl);
+                      const nextIdx = (curIdx + 1) % allGalleryImages.length;
+                      setActiveImageUrl(allGalleryImages[nextIdx]);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-md flex items-center justify-center transition hover:scale-110 z-20"
+                    title="الصورة التالية"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
               {/* Hover Zoom Hint */}
               {!isHoverZooming && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 shadow-md">
@@ -375,12 +436,36 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Micro Thumbnail / Gallery Indicator */}
-            <div className="flex items-center justify-center gap-2 pt-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-pink-500 shadow-xs" />
-              <span className="w-2 h-2 rounded-full bg-pink-200" />
-              <span className="w-2 h-2 rounded-full bg-pink-200" />
-            </div>
+            {/* Interactive Image Gallery Carousel & Thumbnails (USER REQUEST: معرض صور الصنف) */}
+            {allGalleryImages.length > 1 && (
+              <div className="pt-3 border-t border-pink-100/80">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin px-1">
+                  {allGalleryImages.map((img, idx) => {
+                    const isSelected = imageUrl === img;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveImageUrl(img)}
+                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 shrink-0 transition-all duration-200 cursor-pointer ${
+                          isSelected
+                            ? "border-pink-500 ring-2 ring-pink-300 scale-105 shadow-md"
+                            : "border-pink-100 opacity-60 hover:opacity-100 hover:border-pink-300 hover:scale-100"
+                        }`}
+                        title={`صورة ${idx + 1}`}
+                      >
+                        <Image
+                          src={img}
+                          alt={`${product.nameAr} - ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quality Badges */}
@@ -460,16 +545,28 @@ export default function ProductDetailPage() {
                       <button
                         key={v.id}
                         type="button"
-                        onClick={() => setSelectedVariantId(v.id)}
+                        onClick={() => {
+                          setSelectedVariantId(v.id);
+                          if (v.imageUrl && v.imageUrl.trim()) {
+                            setActiveImageUrl(v.imageUrl.trim());
+                          }
+                        }}
                         className={`p-3 rounded-xl border text-right transition flex items-center justify-between ${
                           isChosen
                             ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-transparent shadow-md font-black scale-[1.02]"
                             : "bg-white border-rose-100 text-slate-700 hover:bg-rose-50/60"
                         }`}
                       >
-                        <div>
-                          <span className="text-xs font-bold block">{v.nameAr}</span>
-                          {v.nameEn && <span className={`text-[10px] block opacity-75`}>{v.nameEn}</span>}
+                        <div className="flex items-center gap-2">
+                          {v.imageUrl && (
+                            <div className="w-8 h-8 rounded-lg overflow-hidden relative border border-white/50 shrink-0 shadow-2xs">
+                              <Image src={v.imageUrl} alt={v.nameAr} fill className="object-cover" />
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-xs font-bold block">{v.nameAr}</span>
+                            {v.nameEn && <span className={`text-[10px] block opacity-75`}>{v.nameEn}</span>}
+                          </div>
                         </div>
                         <span className={`text-xs font-black ${isChosen ? "text-white" : "text-rose-600"}`}>
                           {vPrice.toFixed(2)} ج.م
@@ -489,7 +586,7 @@ export default function ProductDetailPage() {
               </p>
             </div>
 
-            {/* Option Groups (if product has customization options) */}
+            {/* Option Groups (USER REQUEST: نكهات وحشوات مع إمكانية تغيير الصورة تلقائياً عند الاختيار) */}
             {product.optionGroups && product.optionGroups.length > 0 && (
               <div className="space-y-4 pt-2 border-t border-pink-100">
                 {product.optionGroups.map((group) => (
@@ -504,16 +601,28 @@ export default function ProductDetailPage() {
                           <button
                             key={val.id}
                             type="button"
-                            onClick={() => setSelectedOptions({ ...selectedOptions, [group.id]: val.id })}
-                            className={`p-2.5 rounded-xl border text-xs font-bold text-center transition flex items-center justify-between ${
+                            onClick={() => {
+                              setSelectedOptions({ ...selectedOptions, [group.id]: val.id });
+                              if (val.imageUrl && val.imageUrl.trim()) {
+                                setActiveImageUrl(val.imageUrl.trim());
+                              }
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs font-bold text-center transition flex items-center justify-between gap-1.5 ${
                               isChosen
                                 ? "bg-pink-500 text-white border-pink-600 shadow-xs"
                                 : "bg-white border-pink-200 text-slate-700 hover:bg-pink-50/50"
                             }`}
                           >
-                            <span>{val.nameAr}</span>
+                            <div className="flex items-center gap-1.5 truncate">
+                              {val.imageUrl && (
+                                <div className="w-6 h-6 rounded-lg overflow-hidden relative border border-pink-200 shrink-0 shadow-2xs">
+                                  <Image src={val.imageUrl} alt={val.nameAr} fill className="object-cover" />
+                                </div>
+                              )}
+                              <span className="truncate">{val.nameAr}</span>
+                            </div>
                             {val.priceDelta > 0 && (
-                              <span className={`text-[10px] ${isChosen ? "text-pink-100" : "text-pink-600 font-black"}`}>
+                              <span className={`text-[10px] shrink-0 ${isChosen ? "text-pink-100" : "text-pink-600 font-black"}`}>
                                 +{val.priceDelta} ج.م
                               </span>
                             )}
@@ -683,7 +792,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Scalable Image */}
+          {/* Scalable Image & Arrows */}
           <div 
             className="relative w-full max-w-4xl h-[70vh] flex items-center justify-center overflow-hidden"
             onClick={(e) => {
@@ -691,6 +800,37 @@ export default function ProductDetailPage() {
               setLightboxScale((s) => (s > 1 ? 1 : 2));
             }}
           >
+            {allGalleryImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const curIdx = allGalleryImages.indexOf(imageUrl);
+                    const prevIdx = (curIdx - 1 + allGalleryImages.length) % allGalleryImages.length;
+                    setActiveImageUrl(allGalleryImages[prevIdx]);
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition z-50 shadow-lg backdrop-blur-sm"
+                  title="الصورة السابقة"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const curIdx = allGalleryImages.indexOf(imageUrl);
+                    const nextIdx = (curIdx + 1) % allGalleryImages.length;
+                    setActiveImageUrl(allGalleryImages[nextIdx]);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition z-50 shadow-lg backdrop-blur-sm"
+                  title="الصورة التالية"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
             <Image
               src={imageUrl}
               alt={product.nameAr}

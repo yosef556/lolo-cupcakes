@@ -28,6 +28,8 @@ export async function PUT(
       isCustomizable,
       displayOrder,
       primaryImageUrl,
+      galleryImages,
+      images,
       variants,
       options,
     } = body;
@@ -60,13 +62,39 @@ export async function PUT(
         await sql`DELETE FROM product_images WHERE product_id = ${id} AND is_primary = true`;
         await sql`
           INSERT INTO product_images (id, product_id, storage_key, public_url, is_primary, display_order, created_at)
-          VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, ${primaryImageUrl}, true, 1, NOW())
+          VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, ${primaryImageUrl}, true, 0, NOW())
         `;
       } catch {
         await sql`
           INSERT INTO product_images (id, product_id, storage_key, is_primary, display_order, created_at)
-          VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, true, 1, NOW())
+          VALUES (gen_random_uuid(), ${id}, ${primaryImageUrl}, true, 0, NOW())
         `;
+      }
+    }
+
+    if (galleryImages !== undefined || images !== undefined) {
+      const extraImages = Array.isArray(galleryImages) && galleryImages.length > 0
+        ? galleryImages
+        : (Array.isArray(images) ? images.filter((img: string) => img !== primaryImageUrl) : []);
+
+      await sql`DELETE FROM product_images WHERE product_id = ${id} AND is_primary = false`;
+
+      if (extraImages.length > 0) {
+        for (let i = 0; i < extraImages.length; i++) {
+          const gUrl = extraImages[i];
+          if (!gUrl || !gUrl.trim()) continue;
+          try {
+            await sql`
+              INSERT INTO product_images (id, product_id, storage_key, public_url, is_primary, display_order, created_at)
+              VALUES (gen_random_uuid(), ${id}, ${gUrl}, ${gUrl}, false, ${i + 1}, NOW())
+            `;
+          } catch {
+            await sql`
+              INSERT INTO product_images (id, product_id, storage_key, is_primary, display_order, created_at)
+              VALUES (gen_random_uuid(), ${id}, ${gUrl}, false, ${i + 1}, NOW())
+            `;
+          }
+        }
       }
     }
 
@@ -78,10 +106,10 @@ export async function PUT(
         const vPrice = v.priceOverride !== undefined && v.priceOverride !== null ? Number(v.priceOverride) : Number(product.base_price);
         await sql`
           INSERT INTO product_variants (
-            id, product_id, name_ar, name_en, sku, price_override, is_active, display_order, created_at
+            id, product_id, name_ar, name_en, sku, price_override, is_active, display_order, image_url, created_at
           ) VALUES (
             gen_random_uuid(), ${id}, ${v.nameAr.trim()}, ${v.nameEn?.trim() || null}, ${v.sku || `${product.slug}-var-${i+1}`},
-            ${vPrice}, ${v.isActive !== false}, ${i + 1}, NOW()
+            ${vPrice}, ${v.isActive !== false}, ${i + 1}, ${v.imageUrl || null}, NOW()
           )
         `;
       }
@@ -110,8 +138,8 @@ export async function PUT(
           const opt = options[i];
           if (!opt.nameAr || !opt.nameAr.trim()) continue;
           await sql`
-            INSERT INTO option_values (id, option_group_id, name_ar, name_en, price_modifier, is_active, display_order, created_at)
-            VALUES (gen_random_uuid(), ${optionGroupId}, ${opt.nameAr.trim()}, ${opt.nameEn || null}, ${Number(opt.priceDelta || 0)}, true, ${i + 1}, NOW())
+            INSERT INTO option_values (id, option_group_id, name_ar, name_en, price_modifier, is_active, display_order, image_url, created_at)
+            VALUES (gen_random_uuid(), ${optionGroupId}, ${opt.nameAr.trim()}, ${opt.nameEn || null}, ${Number(opt.priceDelta || 0)}, true, ${i + 1}, ${opt.imageUrl || null}, NOW())
           `;
         }
       }

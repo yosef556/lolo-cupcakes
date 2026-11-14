@@ -50,9 +50,20 @@ export async function GET(req: NextRequest) {
         sku, 
         price_override::float AS "priceOverride", 
         is_active AS "isActive", 
-        display_order AS "displayOrder" 
+        display_order AS "displayOrder",
+        image_url AS "imageUrl"
       FROM product_variants 
       WHERE is_active = true 
+      ORDER BY display_order ASC
+    `;
+
+    const allProductImages = await sql`
+      SELECT 
+        product_id AS "productId", 
+        COALESCE(public_url, storage_key) AS "url", 
+        is_primary AS "isPrimary", 
+        display_order AS "displayOrder"
+      FROM product_images
       ORDER BY display_order ASC
     `;
 
@@ -77,7 +88,8 @@ export async function GET(req: NextRequest) {
         name_en AS "nameEn", 
         price_modifier::float AS "priceDelta", 
         is_active AS "isActive", 
-        display_order AS "displayOrder" 
+        display_order AS "displayOrder",
+        image_url AS "imageUrl"
       FROM option_values 
       WHERE is_active = true 
       ORDER BY display_order ASC
@@ -102,6 +114,14 @@ export async function GET(req: NextRequest) {
         content: filtered.map((p: any) => {
           const prodVariants = allVariants.filter((v: any) => v.productId === p.id);
           const prodPogs = allPogs.filter((g: any) => g.productId === p.id);
+          const prodImagesRows = allProductImages
+            .filter((img: any) => img.productId === p.id)
+            .sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+          const prodImages = prodImagesRows.map((img: any) => img.url).filter(Boolean);
+          if (prodImages.length === 0 && p.primaryImageUrl) {
+            prodImages.push(p.primaryImageUrl);
+          }
+
           const prodOptionGroups = prodPogs.map((og: any) => ({
             id: og.id,
             nameAr: og.nameAr,
@@ -111,11 +131,14 @@ export async function GET(req: NextRequest) {
               id: v.id,
               nameAr: v.nameAr,
               priceDelta: Number(v.priceDelta || 0),
+              imageUrl: v.imageUrl || null,
               isDefault: false,
             })),
           }));
           return {
             ...p,
+            images: prodImages,
+            galleryImages: prodImages.length > 1 ? prodImages.slice(1) : [],
             variants: prodVariants,
             optionGroups: prodOptionGroups,
             addons: [],

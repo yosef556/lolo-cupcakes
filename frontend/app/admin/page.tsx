@@ -364,6 +364,8 @@ export default function AdminDashboardPage() {
   const [newProdDescAr, setNewProdDescAr] = useState("");
   const [newProdIsFeatured, setNewProdIsFeatured] = useState<boolean>(false);
   const [newProdImageUrl, setNewProdImageUrl] = useState("");
+  const [newProdGalleryImages, setNewProdGalleryImages] = useState<string[]>([]);
+  const [newGalleryInputUrl, setNewGalleryInputUrl] = useState("");
   const [productSubmitting, setProductSubmitting] = useState(false);
 
   // Edit Product Modal State (USER REQUEST: Full CRUD with sizes/variants and flavors/options)
@@ -382,19 +384,25 @@ export default function AdminDashboardPage() {
   const [editProdDescAr, setEditProdDescAr] = useState("");
   const [editProdIsFeatured, setEditProdIsFeatured] = useState<boolean>(false);
   const [editProdImageUrl, setEditProdImageUrl] = useState("");
+  const [editProdGalleryImages, setEditProdGalleryImages] = useState<string[]>([]);
+  const [editGalleryInputUrl, setEditGalleryInputUrl] = useState("");
   const [editProdSubmitting, setEditProdSubmitting] = useState(false);
 
   // Edit Product Variants (Sizes & Servings) & Options (Flavors & Fillings)
-  const [editProdVariants, setEditProdVariants] = useState<Array<{ id?: string; nameAr: string; nameEn?: string; priceOverride: number }>>([]);
+  const [editProdVariants, setEditProdVariants] = useState<Array<{ id?: string; nameAr: string; nameEn?: string; priceOverride: number; imageUrl?: string }>>([]);
   const [newVariantNameAr, setNewVariantNameAr] = useState("");
   const [newVariantPrice, setNewVariantPrice] = useState<number>(500);
-  const [editProdOptions, setEditProdOptions] = useState<Array<{ id?: string; nameAr: string; priceDelta: number }>>([]);
+  const [editProdOptions, setEditProdOptions] = useState<Array<{ id?: string; nameAr: string; priceDelta: number; imageUrl?: string }>>([]);
   const [newOptionNameAr, setNewOptionNameAr] = useState("");
   const [newOptionPriceDelta, setNewOptionPriceDelta] = useState<number>(0);
+  const [newOptionImageUrl, setNewOptionImageUrl] = useState("");
+  const [uploadingOptionImage, setUploadingOptionImage] = useState(false);
 
   // Real Image Upload States
   const [uploadingProdImage, setUploadingProdImage] = useState(false);
   const [uploadingEditProdImage, setUploadingEditProdImage] = useState(false);
+  const [uploadingEditGalleryImage, setUploadingEditGalleryImage] = useState(false);
+  const [uploadingNewGalleryImage, setUploadingNewGalleryImage] = useState(false);
   const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
   const [uploadingSlideImage, setUploadingSlideImage] = useState(false);
   const [uploadingCakeImage, setUploadingCakeImage] = useState(false);
@@ -1715,6 +1723,7 @@ export default function AdminDashboardPage() {
         isFeatured: newProdIsFeatured,
         isCustomizable: true,
         primaryImageUrl: newProdImageUrl || undefined,
+        galleryImages: newProdGalleryImages.length > 0 ? newProdGalleryImages : undefined,
       };
       await createAdminProduct(req);
       showToast(`تمت إضافة الصنف "${newProdNameAr}" إلى المتجر بنجاح! 🧁`);
@@ -1723,6 +1732,8 @@ export default function AdminDashboardPage() {
       setNewProdSlug("");
       setNewProdDescAr("");
       setNewProdImageUrl("");
+      setNewProdGalleryImages([]);
+      setNewGalleryInputUrl("");
       setNewProdTypeCustom("");
       loadCatalogData();
     } catch (err: unknown) {
@@ -1759,22 +1770,32 @@ export default function AdminDashboardPage() {
     setEditProdDescAr(p.descriptionAr || "");
     setEditProdIsFeatured(p.isFeatured ?? false);
     setEditProdImageUrl(p.primaryImageUrl || "");
+
+    // USER REQUEST: تحميل معرض الصور الإضافية للصنف
+    const existingGallery = Array.isArray(p.galleryImages) && p.galleryImages.length > 0
+      ? [...p.galleryImages]
+      : (Array.isArray(p.images) && p.images.length > 1
+        ? p.images.filter((img) => img !== p.primaryImageUrl)
+        : []);
+    setEditProdGalleryImages(existingGallery);
+    setEditGalleryInputUrl("");
     
-    // Load existing variants / sizes
+    // Load existing variants / sizes with images
     const existingVariants = Array.isArray(p.variants) && p.variants.length > 0
       ? p.variants.map((v) => ({
           id: v.id,
           nameAr: v.nameAr,
           nameEn: v.nameEn || "",
           priceOverride: Number(v.priceOverride !== undefined && v.priceOverride !== null ? v.priceOverride : p.basePrice),
+          imageUrl: v.imageUrl || "",
         }))
       : [];
     setEditProdVariants(existingVariants);
     setNewVariantNameAr("");
     setNewVariantPrice(p.basePrice);
 
-    // Load existing options / flavors
-    const existingOptions: Array<{ id?: string; nameAr: string; priceDelta: number }> = [];
+    // Load existing options / flavors with images
+    const existingOptions: Array<{ id?: string; nameAr: string; priceDelta: number; imageUrl?: string }> = [];
     if (Array.isArray(p.optionGroups) && p.optionGroups.length > 0) {
       for (const og of p.optionGroups) {
         if (Array.isArray(og.values)) {
@@ -1783,6 +1804,7 @@ export default function AdminDashboardPage() {
               id: val.id,
               nameAr: val.nameAr,
               priceDelta: Number(val.priceDelta || 0),
+              imageUrl: val.imageUrl || "",
             });
           }
         }
@@ -1791,6 +1813,7 @@ export default function AdminDashboardPage() {
     setEditProdOptions(existingOptions);
     setNewOptionNameAr("");
     setNewOptionPriceDelta(0);
+    setNewOptionImageUrl("");
   };
 
   const handleSaveEditProduct = async (e: React.FormEvent) => {
@@ -1813,20 +1836,23 @@ export default function AdminDashboardPage() {
         descriptionAr: editProdDescAr,
         isFeatured: editProdIsFeatured,
         primaryImageUrl: editProdImageUrl || undefined,
+        galleryImages: editProdGalleryImages,
         variants: editProdVariants.map((v, i) => ({
           nameAr: v.nameAr,
           nameEn: v.nameEn,
           priceOverride: Number(v.priceOverride),
+          imageUrl: v.imageUrl || undefined,
           displayOrder: i + 1,
         })),
         options: editProdOptions.map((opt) => ({
           nameAr: opt.nameAr,
           priceDelta: Number(opt.priceDelta || 0),
+          imageUrl: opt.imageUrl || undefined,
         })),
       });
       setCatalogProducts(catalogProducts.map((p) => p.id === updated.id ? updated : p));
       setEditingProduct(null);
-      showToast(`تم تحديث الصنف "${editProdNameAr}" وكل تفاصيله ومقاساته بنجاح ✨`);
+      showToast(`تم تحديث الصنف "${editProdNameAr}" وكل تفاصيله ومقاساته وصوره بنجاح ✨`);
       loadCatalogData();
     } catch (err: unknown) {
       const error = err as Error;
@@ -2970,6 +2996,88 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
+                {/* Product Gallery Images (USER REQUEST: إمكانية إضافة أكثر من صورة لنفس الصنف) */}
+                <div className="sm:col-span-2 space-y-2.5 p-4 rounded-2xl bg-pink-50/50 border border-pink-200/80">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 block text-xs flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 text-pink-600" />
+                      <span>معرض الصور الإضافية للصنف 📸 (Product Gallery):</span>
+                    </label>
+                    <span className="text-[10px] text-pink-600 font-bold">
+                      {newProdGalleryImages.length} صور إضافية مضافة
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    يمكنك رفع عدة صور تظهر داخل صفحة الصنف في سلايدر ومصغرات تفاعلية:
+                  </p>
+
+                  {/* Existing gallery thumbnails */}
+                  {newProdGalleryImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2.5 p-2 bg-white rounded-xl border border-pink-100">
+                      {newProdGalleryImages.map((imgUrl, gIdx) => (
+                        <div key={gIdx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-pink-200 group/img shadow-xs">
+                          <Image src={imgUrl} alt={`صورة إضافية ${gIdx + 1}`} fill className="object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewProdGalleryImages(newProdGalleryImages.filter((_, i) => i !== gIdx))}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600/90 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition shadow-sm hover:scale-110"
+                            title="حذف هذه الصورة"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload or Add Image to Gallery */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="رابط صورة إضافية (https://...)"
+                      value={newGalleryInputUrl}
+                      onChange={(e) => setNewGalleryInputUrl(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-mono text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newGalleryInputUrl.trim()) return;
+                        setNewProdGalleryImages([...newProdGalleryImages, newGalleryInputUrl.trim()]);
+                        setNewGalleryInputUrl("");
+                      }}
+                      className="px-3 py-2 rounded-xl bg-pink-100 text-pink-700 hover:bg-pink-200 font-bold text-xs transition shrink-0"
+                    >
+                      + إضافة بالرابط
+                    </button>
+                    <label className="cursor-pointer px-3 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition shadow-xs">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{uploadingNewGalleryImage ? "جاري الرفع..." : "رفع من الجهاز 📁"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingNewGalleryImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingNewGalleryImage(true);
+                          try {
+                            const res = await uploadImageFile(file);
+                            setNewProdGalleryImages([...newProdGalleryImages, res]);
+                            showToast("تمت إضافة الصورة لمعرض الصنف بنجاح! 📸");
+                          } catch (err: unknown) {
+                            const error = err as Error;
+                            showToast(error.message || "فشل رفع الصورة", "error");
+                          } finally {
+                            setUploadingNewGalleryImage(false);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 {/* Checkbox Featured */}
                 <div className="sm:col-span-2 flex items-center gap-3 pt-1">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -3502,6 +3610,92 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
+                  {/* Product Gallery Images (USER REQUEST: معرض الصور الإضافية للصنف) */}
+                  <div className="space-y-2.5 p-4 rounded-2xl bg-pink-50/50 border border-pink-200/80">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-800 block text-xs flex items-center gap-1.5">
+                        <Camera className="w-4 h-4 text-pink-600" />
+                        <span>معرض الصور الإضافية للصنف 📸 (Product Gallery):</span>
+                      </label>
+                      <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-800 font-black text-[10px]">
+                        {editProdGalleryImages.length} صور إضافية
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      يمكنك رفع عدة صور تظهر داخل صفحة الصنف في سلايدر ومصغرات تفاعلية:
+                    </p>
+
+                    {/* Thumbnails list */}
+                    {editProdGalleryImages.length > 0 ? (
+                      <div className="flex flex-wrap gap-2.5 p-2 bg-white rounded-xl border border-pink-100">
+                        {editProdGalleryImages.map((imgUrl, gIdx) => (
+                          <div key={gIdx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-pink-200 group/img shadow-xs">
+                            <Image src={imgUrl} alt={`صورة إضافية ${gIdx + 1}`} fill className="object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setEditProdGalleryImages(editProdGalleryImages.filter((_, i) => i !== gIdx))}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600/90 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition shadow-sm hover:scale-110"
+                              title="حذف هذه الصورة"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-white/80 border border-dashed border-pink-300 text-center text-slate-500 text-[11px]">
+                        لا توجد صور إضافية بعد. يمكنك رفع صور من جهازك أو وضع رابط لإضافتها للمعرض.
+                      </div>
+                    )}
+
+                    {/* Upload or Add Image to Gallery */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="رابط صورة إضافية (https://...)"
+                        value={editGalleryInputUrl}
+                        onChange={(e) => setEditGalleryInputUrl(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-mono text-[11px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!editGalleryInputUrl.trim()) return;
+                          setEditProdGalleryImages([...editProdGalleryImages, editGalleryInputUrl.trim()]);
+                          setEditGalleryInputUrl("");
+                        }}
+                        className="px-3 py-2 rounded-xl bg-pink-100 text-pink-700 hover:bg-pink-200 font-bold text-xs transition shrink-0"
+                      >
+                        + إضافة بالرابط
+                      </button>
+                      <label className="cursor-pointer px-3 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition shadow-xs">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingEditGalleryImage ? "جاري الرفع..." : "رفع من الجهاز 📁"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingEditGalleryImage}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingEditGalleryImage(true);
+                            try {
+                              const res = await uploadImageFile(file);
+                              setEditProdGalleryImages([...editProdGalleryImages, res]);
+                              showToast("تمت إضافة الصورة لمعرض الصنف بنجاح! 📸");
+                            } catch (err: unknown) {
+                              const error = err as Error;
+                              showToast(error.message || "فشل رفع الصورة", "error");
+                            } finally {
+                              setUploadingEditGalleryImage(false);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Hierarchical Variants & Sizes Manager (الهيكل الهرمي للمقاسات) */}
                   <div className="space-y-3 p-4 rounded-2xl bg-sky-50/60 border border-sky-200/80">
                     <div className="flex items-center justify-between">
@@ -3597,19 +3791,19 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Options / Flavors & Fillings Manager (النكهات والحشوات) */}
+                  {/* Options / Flavors & Fillings Manager (USER REQUEST: النكهات والحشوات وصورها) */}
                   <div className="space-y-3 p-4 rounded-2xl bg-pink-50/60 border border-pink-200/80">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 font-black text-slate-800 text-xs">
                         <Sparkles className="w-4 h-4 text-pink-500" />
-                        <span>النكهات والحشوات المتاحة للصنف (شوكولاتة، فانيليا، ميكس...) 🍫:</span>
+                        <span>النكهات والأنواع المتاحة للصنف وصورها 🍫:</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 font-black text-[10px]">
                         {editProdOptions.length} نكهة متاحة
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      حدد النكهات التي يستطيع المشتري اختيارها (0 تعني مشمولة بنفس السعر، أو حدد مثلاً +35 ج.م):
+                      حدد النكهات والأنواع (مثلاً: جاتوه شوكولاتة، جاتوه فانيليا) مع صورة خاصة لكل نكهة تتغير تلقائياً في المتجر:
                     </p>
 
                     {/* Current Options List */}
@@ -3617,6 +3811,11 @@ export default function AdminDashboardPage() {
                       <div className="flex flex-wrap gap-2">
                         {editProdOptions.map((opt, oIdx) => (
                           <div key={oIdx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-pink-200 text-slate-800 text-xs font-bold shadow-2xs">
+                            {opt.imageUrl && (
+                              <div className="w-6 h-6 rounded-lg overflow-hidden border border-pink-200 relative shrink-0 shadow-2xs">
+                                <Image src={opt.imageUrl} alt={opt.nameAr} fill className="object-cover" />
+                              </div>
+                            )}
                             <span>{opt.nameAr}</span>
                             <span className="px-1.5 py-0.5 rounded-md bg-pink-100 text-pink-700 text-[10px] font-black">
                               {opt.priceDelta > 0 ? `+${opt.priceDelta} ج.م` : "سعر أساسي"}
@@ -3638,24 +3837,66 @@ export default function AdminDashboardPage() {
                       </div>
                     )}
 
-                    {/* Add New Option Inline Form */}
-                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-pink-200">
-                      <input
-                        type="text"
-                        placeholder="اسم النكهة أو الحشوة (مثال: ميكس نص فانيليا ونص شوكولاتة)"
-                        value={newOptionNameAr}
-                        onChange={(e) => setNewOptionNameAr(e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-bold text-xs"
-                      />
-                      <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    {/* Add New Option Inline Form with Image Upload (USER REQUEST) */}
+                    <div className="flex flex-col gap-2 pt-2 border-t border-pink-200">
+                      <div className="flex flex-col sm:flex-row items-center gap-2">
                         <input
-                          type="number"
-                          placeholder="فرق السعر (0 أو إضافي)"
-                          value={newOptionPriceDelta}
-                          onChange={(e) => setNewOptionPriceDelta(Number(e.target.value))}
-                          className="w-24 px-3 py-2 rounded-xl border border-pink-200 bg-white font-bold text-xs text-center"
+                          type="text"
+                          placeholder="اسم النكهة أو الحشوة (مثال: جاتوه شوكولاتة بلجيكية أو شوكولاتة بيضاء)"
+                          value={newOptionNameAr}
+                          onChange={(e) => setNewOptionNameAr(e.target.value)}
+                          className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-bold text-xs"
                         />
-                        <span className="text-[11px] font-bold text-slate-500">ج.م</span>
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                          <input
+                            type="number"
+                            placeholder="فرق السعر (0 أو إضافي)"
+                            value={newOptionPriceDelta}
+                            onChange={(e) => setNewOptionPriceDelta(Number(e.target.value))}
+                            className="w-24 px-3 py-2 rounded-xl border border-pink-200 bg-white font-bold text-xs text-center"
+                          />
+                          <span className="text-[11px] font-bold text-slate-500">ج.م</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="رابط صورة مخصصة لهذه النكهة (اختياري - تتغير في الويب سايت عند اختيارها) 🍰"
+                          value={newOptionImageUrl}
+                          onChange={(e) => setNewOptionImageUrl(e.target.value)}
+                          className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-mono text-[11px]"
+                        />
+                        <label className="cursor-pointer px-3 py-2 rounded-xl bg-pink-100 text-pink-700 hover:bg-pink-200 font-bold text-xs flex items-center gap-1.5 shrink-0 transition" title="رفع صورة من الجهاز للنكهة">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{uploadingOptionImage ? "جاري الرفع..." : "رفع صورة النكهة 📷"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingOptionImage}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setUploadingOptionImage(true);
+                              try {
+                                const res = await uploadImageFile(file);
+                                setNewOptionImageUrl(res);
+                                showToast("تم رفع صورة النكهة بنجاح! 🍰");
+                              } catch (err: unknown) {
+                                const error = err as Error;
+                                showToast(error.message || "فشل رفع الصورة", "error");
+                              } finally {
+                                setUploadingOptionImage(false);
+                              }
+                            }}
+                          />
+                        </label>
+                        {newOptionImageUrl && (
+                          <div className="w-8 h-8 rounded-lg overflow-hidden border border-pink-300 relative shrink-0 shadow-2xs">
+                            <Image src={newOptionImageUrl} alt="معاينة النكهة" fill className="object-cover" />
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -3668,13 +3909,15 @@ export default function AdminDashboardPage() {
                               {
                                 nameAr: newOptionNameAr.trim(),
                                 priceDelta: Number(newOptionPriceDelta) || 0,
+                                imageUrl: newOptionImageUrl.trim() || undefined,
                               },
                             ]);
                             setNewOptionNameAr("");
                             setNewOptionPriceDelta(0);
-                            showToast("تمت إضافة النكهة للقائمة ✨");
+                            setNewOptionImageUrl("");
+                            showToast("تمت إضافة النكهة وصورتها بنجاح ✨");
                           }}
-                          className="px-3 py-2 rounded-xl bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition shrink-0"
+                          className="px-4 py-2 rounded-xl bg-pink-600 text-white font-bold text-xs hover:bg-pink-700 transition shrink-0"
                         >
                           + إضافة النكهة
                         </button>

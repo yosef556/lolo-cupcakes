@@ -53,11 +53,23 @@ export async function GET(
         sku, 
         price_override::float AS "priceOverride", 
         is_active AS "isActive", 
-        display_order AS "displayOrder" 
+        display_order AS "displayOrder",
+        image_url AS "imageUrl"
       FROM product_variants 
       WHERE product_id = ${product.id} AND is_active = true 
       ORDER BY display_order ASC
     `;
+
+    const allImagesRows = await sql`
+      SELECT COALESCE(public_url, storage_key) AS "url", is_primary AS "isPrimary"
+      FROM product_images
+      WHERE product_id = ${product.id}
+      ORDER BY is_primary DESC, display_order ASC
+    `;
+    const images: string[] = allImagesRows.map((img: any) => img.url).filter(Boolean);
+    if (images.length === 0 && product.primaryImageUrl) {
+      images.push(product.primaryImageUrl);
+    }
 
     const optionGroupsRows = await sql`
       SELECT 
@@ -83,7 +95,8 @@ export async function GET(
           name_en AS "nameEn", 
           price_modifier::float AS "priceDelta", 
           is_active AS "isActive", 
-          display_order AS "displayOrder" 
+          display_order AS "displayOrder",
+          image_url AS "imageUrl"
         FROM option_values 
         WHERE option_group_id = ${og.id} AND is_active = true 
         ORDER BY display_order ASC
@@ -97,6 +110,7 @@ export async function GET(
           id: v.id,
           nameAr: v.nameAr,
           priceDelta: Number(v.priceDelta || 0),
+          imageUrl: v.imageUrl || null,
           isDefault: false,
         })),
       });
@@ -107,6 +121,8 @@ export async function GET(
       message: "Operation successful",
       data: {
         ...product,
+        images,
+        galleryImages: images.length > 1 ? images.slice(1) : [],
         optionGroups,
         addons: [],
         variants,

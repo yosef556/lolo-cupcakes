@@ -30,27 +30,49 @@ function CategorySlideshowCard({
   cat,
   images,
   fallbackImage,
+  index = 0,
 }: {
   cat: CategoryDto;
   images: string[];
   fallbackImage: string;
+  index?: number;
 }) {
   const effectiveImages = images && images.length > 0 ? images : [fallbackImage];
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (effectiveImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % effectiveImages.length);
-    }, 3500); // Transitions every 3.5 seconds
-    return () => clearInterval(interval);
-  }, [effectiveImages.length]);
+    
+    // USER REQUEST: منع التقليب في نفس اللحظة - توقيت متدرج وفخم لكل كارت
+    const intervalDuration = 4000 + (index % 4) * 800; // 4000ms, 4800ms, 5600ms, 6400ms
+    const initialDelay = (index % 5) * 900; // فارق زمني أولي 0, 900, 1800, 2700, 3600ms
+
+    let interval: NodeJS.Timeout;
+    const timeout = setTimeout(() => {
+      interval = setInterval(() => {
+        setIsPaused((paused) => {
+          if (!paused) {
+            setCurrentIndex((prev) => (prev + 1) % effectiveImages.length);
+          }
+          return paused;
+        });
+      }, intervalDuration);
+    }, initialDelay);
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }, [effectiveImages.length, index]);
 
   const currentImg = effectiveImages[currentIndex % effectiveImages.length];
 
   return (
     <Link
       href={`/shop?category=${cat.slug}`}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
       className="group relative rounded-3xl overflow-hidden glass-dream p-4 border border-pink-100 hover:border-pink-300 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
     >
       <div className="aspect-square w-full rounded-2xl overflow-hidden relative mb-3 bg-gradient-to-br from-pink-50 to-sky-50 shadow-inner">
@@ -59,7 +81,7 @@ function CategorySlideshowCard({
           src={currentImg}
           alt={cat.nameAr}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-700 animate-in fade-in"
+          className="object-cover group-hover:scale-110 transition-all duration-700 animate-in fade-in"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
 
@@ -69,7 +91,7 @@ function CategorySlideshowCard({
             {effectiveImages.slice(0, 4).map((_, i) => (
               <span
                 key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
+                className={`h-1.5 rounded-full transition-all duration-500 ${
                   i === currentIndex % Math.min(effectiveImages.length, 4)
                     ? "bg-white w-3"
                     : "bg-white/50 w-1.5"
@@ -180,7 +202,7 @@ export default function HomePage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // Map each category to all images of products inside this category
+  // Map each category to the primary cover images of products inside this category (USER REQUEST: الصور الرئيسية فقط)
   const categoryImagesMap = useMemo(() => {
     const map: Record<string, string[]> = {};
     allProducts.forEach((p) => {
@@ -193,22 +215,15 @@ export default function HomePage() {
 
       if (keys.length === 0) return;
 
-      const imgs: string[] = [];
-      if (p.primaryImageUrl) imgs.push(p.primaryImageUrl);
-      if (p.imageUrl && !imgs.includes(p.imageUrl)) imgs.push(p.imageUrl);
-      if (Array.isArray(p.images)) {
-        p.images.forEach((img) => {
-          if (img && !imgs.includes(img)) imgs.push(img);
-        });
-      }
+      // Only the primary cover image of each product
+      const primImg = p.primaryImageUrl || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : p.imageUrl);
+      if (!primImg) return;
 
       keys.forEach((k) => {
         if (!map[k]) map[k] = [];
-        imgs.forEach((img) => {
-          if (img && !map[k].includes(img)) {
-            map[k].push(img);
-          }
-        });
+        if (!map[k].includes(primImg)) {
+          map[k].push(primImg);
+        }
       });
     });
     return map;
@@ -411,6 +426,7 @@ export default function HomePage() {
                 cat={cat}
                 images={productImages}
                 fallbackImage={fallback}
+                index={idx}
               />
             );
           })}

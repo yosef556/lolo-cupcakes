@@ -45,6 +45,7 @@ export interface OptionValueDto {
   nameAr: string;
   priceDelta: number;
   isDefault: boolean;
+  imageUrl?: string;
 }
 
 export interface OptionGroupDto {
@@ -80,6 +81,8 @@ export interface ProductDto {
   productType?: string;
   sellingUnit?: "PIECE" | "BOX" | "WEIGHT" | "CONFIGURABLE";
   primaryImageUrl?: string;
+  images?: string[];
+  galleryImages?: string[];
   categoryNameAr?: string;
   categorySlug?: string;
   optionGroups: OptionGroupDto[];
@@ -94,6 +97,7 @@ export interface ProductVariantDto {
   priceDelta: number;
   priceOverride?: number;
   stockQuantity?: number;
+  imageUrl?: string;
 }
 
 // Cart Models
@@ -716,6 +720,8 @@ export interface CreateProductRequest {
   isCustomizable?: boolean;
   displayOrder?: number;
   primaryImageUrl?: string;
+  galleryImages?: string[];
+  images?: string[];
   variants?: Array<{
     id?: string;
     nameAr: string;
@@ -724,12 +730,14 @@ export interface CreateProductRequest {
     sku?: string;
     isActive?: boolean;
     displayOrder?: number;
+    imageUrl?: string;
   }>;
   options?: Array<{
     id?: string;
     nameAr: string;
     nameEn?: string;
     priceDelta: number;
+    imageUrl?: string;
   }>;
 }
 
