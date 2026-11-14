@@ -21,9 +21,9 @@ export async function GET(
     }
 
     const reviews = await sql`
-      SELECT id, product_id AS "productId", user_id AS "userId", customer_name AS "customerName", rating, comment, created_at AS "createdAt"
+      SELECT id, product_id AS "productId", user_id AS "userId", customer_name AS "customerName", rating, comment, is_approved AS "isApproved", created_at AS "createdAt"
       FROM product_reviews
-      WHERE product_id = ${product.id}
+      WHERE product_id = ${product.id} AND (is_approved = true OR is_approved IS NULL)
       ORDER BY created_at DESC
     `;
 
@@ -62,9 +62,9 @@ export async function POST(
 
     const id = randomUUID();
     const [review] = await sql`
-      INSERT INTO product_reviews (id, product_id, user_id, customer_name, rating, comment, created_at)
-      VALUES (${id}, ${product.id}, ${userId || null}, ${customerName}, ${rating}, ${comment}, NOW())
-      RETURNING id, product_id AS "productId", user_id AS "userId", customer_name AS "customerName", rating, comment, created_at AS "createdAt"
+      INSERT INTO product_reviews (id, product_id, user_id, customer_name, rating, comment, is_approved, is_featured, status, created_at)
+      VALUES (${id}, ${product.id}, ${userId || null}, ${customerName}, ${rating}, ${comment}, true, false, 'APPROVED', NOW())
+      RETURNING id, product_id AS "productId", user_id AS "userId", customer_name AS "customerName", rating, comment, is_approved AS "isApproved", created_at AS "createdAt"
     `;
 
     return NextResponse.json({

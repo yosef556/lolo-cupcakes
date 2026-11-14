@@ -26,7 +26,14 @@ export async function GET(req: NextRequest) {
     const mapped = [];
     for (const p of payments) {
       const proofs = await sql`
-        SELECT id, original_filename AS "originalFilename", file_size AS "fileSize", mime_type AS "mimeType", uploaded_at AS "uploadedAt"
+        SELECT 
+          id, 
+          original_filename AS "originalFilename", 
+          file_size AS "fileSize", 
+          mime_type AS "mimeType",
+          storage_key AS "storageKey",
+          COALESCE(public_url, storage_key) AS "publicUrl",
+          uploaded_at AS "uploadedAt"
         FROM payment_proofs
         WHERE payment_id = ${p.id}
       `;

@@ -34,6 +34,17 @@ export async function POST(
     const mimeType = file?.type || 'image/jpeg';
     const storageKey = `proofs/${orderNumber}_${Date.now()}_${filename}`;
 
+    let publicUrl = storageKey;
+    if (file && typeof file.arrayBuffer === 'function') {
+      try {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        publicUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+      } catch (err) {
+        console.error('Error converting proof file to base64:', err);
+      }
+    }
+
     await sql`
       INSERT INTO payments (
         id, order_id, payment_method, amount, currency, status, payment_reference, created_at, updated_at
@@ -45,9 +56,9 @@ export async function POST(
 
     await sql`
       INSERT INTO payment_proofs (
-        id, payment_id, original_filename, storage_key, mime_type, file_size, uploaded_at
+        id, payment_id, original_filename, storage_key, public_url, mime_type, file_size, uploaded_at
       ) VALUES (
-        ${proofId}, ${paymentId}, ${filename}, ${storageKey}, ${mimeType}, ${fileSize}, NOW()
+        ${proofId}, ${paymentId}, ${filename}, ${storageKey}, ${publicUrl}, ${mimeType}, ${fileSize}, NOW()
       )
     `;
 
@@ -62,7 +73,7 @@ export async function POST(
 
     await sql`
       UPDATE orders
-      SET customer_notes = ${notesUpdate}, updated_at = NOW()
+      SET customer_notes = ${notesUpdate}, payment_status = 'PENDING_VERIFICATION', updated_at = NOW()
       WHERE id = ${order.id}
     `;
 

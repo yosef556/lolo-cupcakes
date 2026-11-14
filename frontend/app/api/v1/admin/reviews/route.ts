@@ -11,10 +11,13 @@ export async function GET() {
       SELECT 
         r.id,
         r.product_id AS "productId",
-        p.name_ar AS "productNameAr",
+        COALESCE(p.name_ar, 'تقييم عام للمتجر') AS "productNameAr",
         r.customer_name AS "customerName",
         r.rating,
         r.comment,
+        COALESCE(r.is_approved, true) AS "isApproved",
+        COALESCE(r.is_featured, false) AS "isFeatured",
+        COALESCE(r.status, 'APPROVED') AS "status",
         r.created_at AS "createdAt"
       FROM product_reviews r
       LEFT JOIN products p ON r.product_id = p.id
@@ -40,13 +43,13 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { productId, customerName, rating = 5, comment = "" } = body;
+    const { productId, customerName, rating = 5, comment = "", isApproved = true, isFeatured = false } = body;
 
     const id = randomUUID();
     const [review] = await sql`
-      INSERT INTO product_reviews (id, product_id, customer_name, rating, comment, created_at)
-      VALUES (${id}, ${productId || null}, ${customerName}, ${rating}, ${comment}, NOW())
-      RETURNING id, product_id AS "productId", customer_name AS "customerName", rating, comment, created_at AS "createdAt"
+      INSERT INTO product_reviews (id, product_id, customer_name, rating, comment, is_approved, is_featured, status, created_at)
+      VALUES (${id}, ${productId || null}, ${customerName}, ${rating}, ${comment}, ${isApproved}, ${isFeatured}, ${isApproved ? 'APPROVED' : 'HIDDEN'}, NOW())
+      RETURNING id, product_id AS "productId", customer_name AS "customerName", rating, comment, is_approved AS "isApproved", is_featured AS "isFeatured", status, created_at AS "createdAt"
     `;
 
     return NextResponse.json({

@@ -77,7 +77,7 @@ export interface ProductDto {
   isActive: boolean;
   isFeatured?: boolean;
   isCustomizable: boolean;
-  productType?: "CUPCAKE" | "CAKE" | "GATEAU" | "ORIENTAL" | "WESTERN" | "BOX" | "CUSTOM";
+  productType?: string;
   sellingUnit?: "PIECE" | "BOX" | "WEIGHT" | "CONFIGURABLE";
   primaryImageUrl?: string;
   categoryNameAr?: string;
@@ -705,7 +705,7 @@ export interface CreateProductRequest {
   slug: string;
   descriptionAr?: string;
   descriptionEn?: string;
-  productType: "CUPCAKE" | "CAKE" | "GATEAU" | "ORIENTAL" | "WESTERN" | "BOX" | "CUSTOM";
+  productType: string;
   sellingUnit: "PIECE" | "BOX" | "WEIGHT" | "CONFIGURABLE";
   basePrice: number;
   prepLeadHours?: number;
@@ -836,11 +836,14 @@ export async function uploadImageFile(file: File): Promise<string> {
 
 export interface ReviewItemDto {
   id: string;
-  productId: string;
+  productId?: string;
   productNameAr?: string;
   customerName: string;
   rating: number;
   comment: string;
+  isApproved?: boolean;
+  isFeatured?: boolean;
+  status?: string;
   createdAt: string;
 }
 
@@ -849,6 +852,7 @@ export interface CreateAdminReviewRequest {
   customerName: string;
   rating: number;
   comment: string;
+  isApproved?: boolean;
   isFeatured?: boolean;
 }
 
@@ -866,6 +870,22 @@ export async function createAdminReview(data: CreateAdminReviewRequest): Promise
   const res = await fetchApi<ReviewItemDto>("/admin/reviews", {
     method: "POST",
     body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function toggleAdminReviewStatus(id: string, isApproved: boolean): Promise<ReviewItemDto> {
+  const res = await fetchApi<ReviewItemDto>(`/admin/reviews/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ isApproved }),
+  });
+  return res.data;
+}
+
+export async function toggleAdminReviewFeatured(id: string, isFeatured: boolean): Promise<ReviewItemDto> {
+  const res = await fetchApi<ReviewItemDto>(`/admin/reviews/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ isFeatured }),
   });
   return res.data;
 }

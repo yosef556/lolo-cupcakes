@@ -57,6 +57,7 @@ import {
   getAdminReviews,
   createAdminReview,
   deleteAdminReview,
+  toggleAdminReviewStatus,
   ReviewItemDto,
   API_BASE_URL 
 } from "@/lib/api";
@@ -68,6 +69,7 @@ import {
   Settings, 
   CheckCircle2, 
   Eye, 
+  EyeOff,
   Save, 
   RefreshCw,
   Plus,
@@ -321,12 +323,39 @@ export default function AdminDashboardPage() {
   const [editCatOrder, setEditCatOrder] = useState<number>(1);
   const [editCatSubmitting, setEditCatSubmitting] = useState(false);
 
+  // Dynamic Product Types & Hierarchy State (USER REQUEST: إضافة وتعديل وحذف أنواع المنتجات ونوع مخصص)
+  const DEFAULT_PRODUCT_TYPES = useMemo(() => [
+    { code: "CAKE", labelAr: "كيك وتورتات (CAKE)" },
+    { code: "CUPCAKE", labelAr: "كب كيك (CUPCAKE)" },
+    { code: "GATEAU", labelAr: "جاتوه (GATEAU)" },
+    { code: "BOX", labelAr: "بوكس حلويات مشكل (BOX)" },
+    { code: "ORIENTAL", labelAr: "حلويات شرقية (ORIENTAL)" },
+    { code: "WESTERN", labelAr: "حلويات غربية (WESTERN)" },
+    { code: "CUSTOM", labelAr: "كيك مخصص (CUSTOM)" },
+  ], []);
+
+  const [productTypesList, setProductTypesList] = useState<Array<{ code: string; labelAr: string }>>([
+    { code: "CAKE", labelAr: "كيك وتورتات (CAKE)" },
+    { code: "CUPCAKE", labelAr: "كب كيك (CUPCAKE)" },
+    { code: "GATEAU", labelAr: "جاتوه (GATEAU)" },
+    { code: "BOX", labelAr: "بوكس حلويات مشكل (BOX)" },
+    { code: "ORIENTAL", labelAr: "حلويات شرقية (ORIENTAL)" },
+    { code: "WESTERN", labelAr: "حلويات غربية (WESTERN)" },
+    { code: "CUSTOM", labelAr: "كيك مخصص (CUSTOM)" },
+  ]);
+  const [showTypeManagerModal, setShowTypeManagerModal] = useState(false);
+  const [newCustomTypeName, setNewCustomTypeName] = useState("");
+  const [newCustomTypeCode, setNewCustomTypeCode] = useState("");
+  const [editingTypeCode, setEditingTypeCode] = useState<string | null>(null);
+  const [editingTypeLabel, setEditingTypeLabel] = useState("");
+
   // New Product Form State
   const [newProdNameAr, setNewProdNameAr] = useState("");
   const [newProdNameEn, setNewProdNameEn] = useState("");
   const [newProdSlug, setNewProdSlug] = useState("");
   const [newProdCategoryId, setNewProdCategoryId] = useState("");
-  const [newProdType, setNewProdType] = useState<CreateProductRequest["productType"]>("CUPCAKE");
+  const [newProdType, setNewProdType] = useState<string>("CUPCAKE");
+  const [newProdTypeCustom, setNewProdTypeCustom] = useState("");
   const [newProdSellingUnit, setNewProdSellingUnit] = useState<CreateProductRequest["sellingUnit"]>("PIECE");
   const [newProdPrice, setNewProdPrice] = useState<number>(45);
   const [newProdLeadHours, setNewProdLeadHours] = useState<number>(3);
@@ -343,7 +372,8 @@ export default function AdminDashboardPage() {
   const [editProdNameEn, setEditProdNameEn] = useState("");
   const [editProdSlug, setEditProdSlug] = useState("");
   const [editProdCategoryId, setEditProdCategoryId] = useState("");
-  const [editProdType, setEditProdType] = useState<"CUPCAKE" | "CAKE" | "GATEAU" | "ORIENTAL" | "WESTERN" | "BOX" | "CUSTOM">("CAKE");
+  const [editProdType, setEditProdType] = useState<string>("CAKE");
+  const [editProdTypeCustom, setEditProdTypeCustom] = useState("");
   const [editProdSellingUnit, setEditProdSellingUnit] = useState<"PIECE" | "BOX" | "WEIGHT" | "CONFIGURABLE">("PIECE");
   const [editProdPrice, setEditProdPrice] = useState<number>(45);
   const [editProdStock, setEditProdStock] = useState<number>(15);
@@ -374,9 +404,11 @@ export default function AdminDashboardPage() {
   const [reviews, setReviews] = useState<ReviewItemDto[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<"ALL" | "APPROVED" | "HIDDEN">("ALL");
   const [newReviewCustomer, setNewReviewCustomer] = useState("");
   const [newReviewRating, setNewReviewRating] = useState(5);
   const [newReviewComment, setNewReviewComment] = useState("");
+  const [newReviewApproved, setNewReviewApproved] = useState(true);
   const [newReviewSubmitting, setNewReviewSubmitting] = useState(false);
 
   // Customers Management State (USER REQUEST)
@@ -591,6 +623,27 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  const handleToggleReview = async (review: ReviewItemDto, nextApproved: boolean) => {
+    try {
+      await toggleAdminReviewStatus(review.id, nextApproved);
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === review.id
+            ? { ...r, isApproved: nextApproved, status: nextApproved ? "APPROVED" : "HIDDEN" }
+            : r
+        )
+      );
+      showToast(
+        nextApproved
+          ? `تم إظهار تقييم العميل "${review.customerName}" في واجهة المتجر بنجاح ⭐`
+          : `تم إخفاء تقييم العميل "${review.customerName}" من واجهة المتجر 👁️‍🗨️`
+      );
+    } catch (err: unknown) {
+      const error = err as Error;
+      showToast(error.message || "فشل تحديث حالة التقييم", "error");
+    }
+  };
+
   const handleCreateReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReviewCustomer.trim() || !newReviewComment.trim()) {
@@ -603,6 +656,7 @@ export default function AdminDashboardPage() {
         customerName: newReviewCustomer.trim(),
         rating: newReviewRating,
         comment: newReviewComment.trim(),
+        isApproved: newReviewApproved,
         isFeatured: true,
       });
       showToast("تمت إضافة تقييم العميل بنجاح! ⭐");
@@ -610,6 +664,7 @@ export default function AdminDashboardPage() {
       setNewReviewCustomer("");
       setNewReviewComment("");
       setNewReviewRating(5);
+      setNewReviewApproved(true);
       loadReviews();
     } catch (err: unknown) {
       const error = err as Error;
@@ -629,6 +684,52 @@ export default function AdminDashboardPage() {
       const error = err as Error;
       showToast(error.message || "فشل حذف التقييم", "error");
     }
+  };
+
+  // Dynamic Product Types Handlers (USER REQUEST: إدارة أنواع المنتجات والنوع المخصص)
+  const saveProductTypesToSettings = async (types: Array<{ code: string; labelAr: string }>) => {
+    setProductTypesList(types);
+    try {
+      await updateStoreSetting("catalog_product_types", JSON.stringify(types));
+      showToast("تم حفظ وتحديث أنواع المنتجات بنجاح ✨");
+    } catch (err: unknown) {
+      const error = err as Error;
+      showToast(error.message || "فشل حفظ أنواع المنتجات", "error");
+    }
+  };
+
+  const handleAddNewProductType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomTypeName.trim()) {
+      showToast("يرجى إدخال اسم نوع المنتج", "error");
+      return;
+    }
+    const code = (newCustomTypeCode.trim() || newCustomTypeName.trim()).toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+    if (productTypesList.some((t) => t.code === code)) {
+      showToast("هذا النوع أو الكود موجود بالفعل", "error");
+      return;
+    }
+    const updated = [...productTypesList, { code, labelAr: newCustomTypeName.trim() }];
+    await saveProductTypesToSettings(updated);
+    setNewCustomTypeName("");
+    setNewCustomTypeCode("");
+  };
+
+  const handleUpdateProductType = async (code: string, newLabel: string) => {
+    if (!newLabel.trim()) return;
+    const updated = productTypesList.map((t) => (t.code === code ? { ...t, labelAr: newLabel.trim() } : t));
+    await saveProductTypesToSettings(updated);
+    setEditingTypeCode(null);
+    setEditingTypeLabel("");
+  };
+
+  const handleDeleteProductType = async (code: string) => {
+    if (productTypesList.length <= 1) {
+      showToast("يجب الإبقاء على نوع منتج واحد على الأقل", "error");
+      return;
+    }
+    const updated = productTypesList.filter((t) => t.code !== code);
+    await saveProductTypesToSettings(updated);
   };
 
   // Export orders to CSV/Excel
@@ -850,6 +951,18 @@ export default function AdminDashboardPage() {
     })
       .then((res) => setCatalogProducts(res.content))
       .catch(() => setCatalogProducts([]));
+
+    getStoreSettings().then((settings) => {
+      const typesSetting = settings.find((s) => s.key === "catalog_product_types");
+      if (typesSetting && typesSetting.value) {
+        try {
+          const parsed = JSON.parse(typesSetting.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setProductTypesList(parsed);
+          }
+        } catch {}
+      }
+    }).catch(() => {});
   }, [catalogFilterCategory, catalogSearch]);
 
   const displayedCatalogProducts = useMemo(() => {
@@ -1585,13 +1698,14 @@ export default function AdminDashboardPage() {
     }
     setProductSubmitting(true);
     try {
+      const finalProductType = newProdType === "__CUSTOM__" ? (newProdTypeCustom.trim() || "CUSTOM") : newProdType;
       const req: CreateProductRequest = {
         categoryId: newProdCategoryId,
         nameAr: newProdNameAr,
         nameEn: newProdNameEn || newProdSlug,
         slug: newProdSlug,
         descriptionAr: newProdDescAr,
-        productType: newProdType,
+        productType: finalProductType,
         sellingUnit: newProdSellingUnit,
         basePrice: Number(newProdPrice),
         prepLeadHours: Number(newProdLeadHours),
@@ -1609,6 +1723,7 @@ export default function AdminDashboardPage() {
       setNewProdSlug("");
       setNewProdDescAr("");
       setNewProdImageUrl("");
+      setNewProdTypeCustom("");
       loadCatalogData();
     } catch (err: unknown) {
       const error = err as Error;
@@ -1625,7 +1740,17 @@ export default function AdminDashboardPage() {
     setEditProdNameEn(p.nameEn || p.slug);
     setEditProdSlug(p.slug);
     setEditProdCategoryId(p.categoryId);
-    setEditProdType(p.productType || "CAKE");
+
+    const pType = p.productType || "CAKE";
+    const isKnown = productTypesList.some((t) => t.code === pType);
+    if (isKnown) {
+      setEditProdType(pType);
+      setEditProdTypeCustom("");
+    } else {
+      setEditProdType("__CUSTOM__");
+      setEditProdTypeCustom(pType);
+    }
+
     setEditProdSellingUnit(p.sellingUnit || "PIECE");
     setEditProdPrice(p.basePrice);
     setEditProdStock(p.stockQuantity ?? 15);
@@ -1673,12 +1798,13 @@ export default function AdminDashboardPage() {
     if (!editingProduct) return;
     setEditProdSubmitting(true);
     try {
+      const finalProductType = editProdType === "__CUSTOM__" ? (editProdTypeCustom.trim() || "CUSTOM") : editProdType;
       const updated = await updateAdminProduct(editingProduct.id, {
         categoryId: editProdCategoryId,
         nameAr: editProdNameAr,
         nameEn: editProdNameEn,
         slug: editProdSlug,
-        productType: editProdType,
+        productType: finalProductType,
         sellingUnit: editProdSellingUnit,
         basePrice: Number(editProdPrice),
         stockQuantity: Number(editProdStock),
@@ -2599,22 +2725,41 @@ export default function AdminDashboardPage() {
                   </select>
                 </div>
 
-                {/* Product Type */}
+                {/* Product Type (USER REQUEST: إدارة وتعديل أنواع المنتجات ونوع مخصص) */}
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">نوع المنتج *:</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-700 block text-xs">نوع المنتج *:</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowTypeManagerModal(true)}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline flex items-center gap-1"
+                    >
+                      <SlidersHorizontal className="w-3 h-3" />
+                      <span>⚙️ إدارة / تعديل الأنواع</span>
+                    </button>
+                  </div>
                   <select
                     value={newProdType}
-                    onChange={(e) => setNewProdType(e.target.value as CreateProductRequest["productType"])}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-800 bg-white"
+                    onChange={(e) => setNewProdType(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-800 bg-white text-xs"
                   >
-                    <option value="CUPCAKE">كب كيك (CUPCAKE)</option>
-                    <option value="CAKE">كيك وتورتات (CAKE)</option>
-                    <option value="GATEAU">جاتوه (GATEAU)</option>
-                    <option value="BOX">بوكس حلويات مشكل (BOX)</option>
-                    <option value="ORIENTAL">حلويات شرقية (ORIENTAL)</option>
-                    <option value="WESTERN">حلويات غربية (WESTERN)</option>
-                    <option value="CUSTOM">كيك مخصص (CUSTOM)</option>
+                    {productTypesList.map((pt) => (
+                      <option key={pt.code} value={pt.code}>
+                        {pt.labelAr}
+                      </option>
+                    ))}
+                    <option value="__CUSTOM__">✨ نوع مخصص جديد (كتابة يدوية)...</option>
                   </select>
+                  {newProdType === "__CUSTOM__" && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="اكتب نوع الصنف المخصص (مثال: إكلير فرنسي، تارت فواكه، إلخ)..."
+                      value={newProdTypeCustom}
+                      onChange={(e) => setNewProdTypeCustom(e.target.value)}
+                      className="mt-2 w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/50 font-bold text-xs text-slate-900 focus:ring-2 focus:ring-amber-400"
+                    />
+                  )}
                 </div>
 
                 {/* Name Ar */}
@@ -3163,21 +3308,41 @@ export default function AdminDashboardPage() {
                         </select>
                       </div>
 
+                      {/* Product Type (USER REQUEST: تعديل وحذف أنواع المنتجات ونوع مخصص) */}
                       <div>
-                        <label className="font-bold text-slate-700 block mb-1">نوع المنتج *:</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="font-bold text-slate-700 block text-xs">نوع المنتج *:</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowTypeManagerModal(true)}
+                            className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline flex items-center gap-1"
+                          >
+                            <SlidersHorizontal className="w-3 h-3" />
+                            <span>⚙️ إدارة / تعديل الأنواع</span>
+                          </button>
+                        </div>
                         <select
                           value={editProdType}
-                          onChange={(e) => setEditProdType(e.target.value as any)}
-                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800"
+                          onChange={(e) => setEditProdType(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800 text-xs"
                         >
-                          <option value="CAKE">كيك وتورتات (CAKE)</option>
-                          <option value="CUPCAKE">كب كيك (CUPCAKE)</option>
-                          <option value="GATEAU">جاتوه (GATEAU)</option>
-                          <option value="BOX">بوكس حلويات مشكل (BOX)</option>
-                          <option value="ORIENTAL">حلويات شرقية (ORIENTAL)</option>
-                          <option value="WESTERN">حلويات غربية (WESTERN)</option>
-                          <option value="CUSTOM">كيك مخصص (CUSTOM)</option>
+                          {productTypesList.map((pt) => (
+                            <option key={pt.code} value={pt.code}>
+                              {pt.labelAr}
+                            </option>
+                          ))}
+                          <option value="__CUSTOM__">✨ نوع مخصص جديد (كتابة يدوية)...</option>
                         </select>
+                        {editProdType === "__CUSTOM__" && (
+                          <input
+                            type="text"
+                            required
+                            placeholder="اكتب نوع الصنف المخصص (مثال: إكلير فرنسي، تارت فواكه، إلخ)..."
+                            value={editProdTypeCustom}
+                            onChange={(e) => setEditProdTypeCustom(e.target.value)}
+                            className="mt-2 w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/50 font-bold text-xs text-slate-900 focus:ring-2 focus:ring-amber-400"
+                          />
+                        )}
                       </div>
 
                       <div>
@@ -7418,23 +7583,62 @@ export default function AdminDashboardPage() {
 
           {/* Reviews List */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-amber-100 shadow-sm space-y-5">
-            <div className="flex items-center justify-between border-b border-amber-100 pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-amber-100 pb-4 gap-4">
               <div>
                 <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                  <span>التقييمات المعتمدة ({reviews.length})</span>
+                  <span>آراء وتقييمات العملاء ({reviews.length})</span>
                 </h3>
-                <p className="text-xs text-slate-500">هذه التقييمات تظهر بشكل ديناميكي وجذاب في الصفحة الرئيسية لزيادة ثقة العملاء</p>
+                <p className="text-xs text-slate-500">تحكم كامل في إظهار أو إخفاء أي تعليق على واجهة المتجر لحماية سمعة البراند واختيار أفضل التجارب</p>
               </div>
-              <button
-                type="button"
-                onClick={loadReviews}
-                disabled={reviewsLoading}
-                className="px-3 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${reviewsLoading ? "animate-spin" : ""}`} />
-                <span>تحديث</span>
-              </button>
+
+              {/* Status Filters & Refresh */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("ALL")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    reviewFilter === "ALL"
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  الكل ({reviews.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("APPROVED")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    reviewFilter === "APPROVED"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>المعروضة ({reviews.filter((r) => r.isApproved !== false).length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewFilter("HIDDEN")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    reviewFilter === "HIDDEN"
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "bg-amber-50 text-amber-800 hover:bg-amber-100"
+                  }`}
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <span>المخفية ({reviews.filter((r) => r.isApproved === false).length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={loadReviews}
+                  disabled={reviewsLoading}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${reviewsLoading ? "animate-spin" : ""}`} />
+                  <span>تحديث</span>
+                </button>
+              </div>
             </div>
 
             {reviewsLoading ? (
@@ -7449,42 +7653,95 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {reviews.map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="p-5 rounded-2xl bg-amber-50/30 border border-amber-200/80 hover:border-amber-400 transition flex flex-col justify-between space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-slate-900 text-sm">{rev.customerName}</span>
-                        <div className="flex items-center gap-0.5 text-amber-400">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-3.5 h-3.5 ${i < rev.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
-                            />
-                          ))}
+                {reviews
+                  .filter((r) => {
+                    if (reviewFilter === "APPROVED") return r.isApproved !== false;
+                    if (reviewFilter === "HIDDEN") return r.isApproved === false;
+                    return true;
+                  })
+                  .map((rev) => (
+                    <div
+                      key={rev.id}
+                      className={`p-5 rounded-2xl border transition flex flex-col justify-between space-y-4 ${
+                        rev.isApproved === false
+                          ? "bg-slate-50/70 border-slate-300 opacity-90"
+                          : "bg-amber-50/30 border-amber-200/80 hover:border-amber-400"
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-black text-slate-900 text-sm block">{rev.customerName}</span>
+                            {rev.productNameAr && (
+                              <span className="text-[11px] font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md inline-block mt-0.5">
+                                {rev.productNameAr}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex items-center gap-0.5 text-amber-400">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-3.5 h-3.5 ${i < rev.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                                />
+                              ))}
+                            </div>
+                            {rev.isApproved === false ? (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 flex items-center gap-1">
+                                <EyeOff className="w-3 h-3 text-slate-500" />
+                                <span>مخفي عن الزوار</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                                <Eye className="w-3 h-3 text-emerald-600" />
+                                <span>معروض في المتجر</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed italic">
+                          &quot;{rev.comment}&quot;
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-amber-100/60 text-[11px] text-slate-400">
+                        <span>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString("ar-EG") : "معتمد"}</span>
+                        <div className="flex items-center gap-2">
+                          {rev.isApproved === false ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleReview(rev, true)}
+                              className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold transition flex items-center gap-1"
+                              title="إظهار هذا التقييم في المتجر"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>إظهار</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleReview(rev, false)}
+                              className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold transition flex items-center gap-1"
+                              title="إخفاء هذا التقييم من الظهور في المتجر"
+                            >
+                              <EyeOff className="w-3.5 h-3.5" />
+                              <span>إخفاء</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReview(rev)}
+                            className="px-2.5 py-1 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 font-bold transition flex items-center gap-1"
+                            title="حذف هذا التقييم نهائياً"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>حذف</span>
+                          </button>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-600 leading-relaxed italic">
-                        &quot;{rev.comment}&quot;
-                      </p>
                     </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-amber-100 text-[11px] text-slate-400">
-                      <span>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString("ar-EG") : "معتمد"}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteReview(rev)}
-                        className="px-2.5 py-1 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 font-bold transition flex items-center gap-1"
-                        title="حذف هذا التقييم"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>حذف</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </div>
@@ -7547,6 +7804,16 @@ export default function AdminDashboardPage() {
                     />
                   </div>
 
+                  <label className="flex items-center gap-2 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={newReviewApproved}
+                      onChange={(e) => setNewReviewApproved(e.target.checked)}
+                      className="rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                    />
+                    <span className="font-bold text-slate-700 text-xs">إظهار التقييم مباشرة في الصفحة الرئيسية للمتجر</span>
+                  </label>
+
                   <div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-100">
                     <button
                       type="button"
@@ -7564,6 +7831,126 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Dynamic Product Types Manager (USER REQUEST: إدارة وتعديل وحذف أنواع المنتجات) */}
+          {showTypeManagerModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl border border-rose-200 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+                  <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
+                    <SlidersHorizontal className="w-5 h-5 text-rose-500" />
+                    <span>إدارة وتعديل أنواع المنتجات (Product Types)</span>
+                  </h4>
+                  <button onClick={() => setShowTypeManagerModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+                </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  يمكنك هنا إضافة أنواع جديدة لأصنافك (مثل: تارت، إكلير، سينابون، دوناتس، ميني كيك، بوكسات)، وتعديل مسمياتها أو حذف الأنواع المخصصة.
+                </p>
+
+                {/* Add New Type Form */}
+                <form onSubmit={handleAddNewProductType} className="p-4 rounded-2xl bg-rose-50/60 border border-rose-100 space-y-3">
+                  <span className="text-xs font-black text-rose-900 block">➕ إضافة نوع منتج جديد</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="اسم النوع بالعربي (مثال: إكلير)"
+                      value={newCustomTypeName}
+                      onChange={(e) => setNewCustomTypeName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold text-xs bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="كود اختياري (مثال: ECLAIR)"
+                      value={newCustomTypeCode}
+                      onChange={(e) => setNewCustomTypeCode(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold text-xs bg-white uppercase"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm"
+                  >
+                    إضافة النوع للقائمة
+                  </button>
+                </form>
+
+                {/* Current Product Types List */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-slate-700 block">الأنواع المتاحة حالياً ({productTypesList.length}):</span>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {productTypesList.map((pt) => (
+                      <div
+                        key={pt.code}
+                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2"
+                      >
+                        {editingTypeCode === pt.code ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingTypeLabel}
+                              onChange={(e) => setEditingTypeLabel(e.target.value)}
+                              className="flex-1 px-2.5 py-1.5 rounded-lg border border-rose-300 font-bold text-xs bg-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateProductType(pt.code, editingTypeLabel)}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs"
+                            >
+                              حفظ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setEditingTypeCode(null); setEditingTypeLabel(""); }}
+                              className="px-2 py-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold text-xs"
+                            >
+                              إلغاء
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <span className="font-bold text-xs text-slate-900 block">{pt.labelAr}</span>
+                              <span className="text-[10px] font-mono text-slate-400">الكود: {pt.code}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => { setEditingTypeCode(pt.code); setEditingTypeLabel(pt.labelAr); }}
+                                className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 transition"
+                                title="تعديل اسم النوع"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProductType(pt.code)}
+                                className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition"
+                                title="حذف هذا النوع"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowTypeManagerModal(false)}
+                    className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition"
+                  >
+                    تم وإغلاق
+                  </button>
+                </div>
               </div>
             </div>
           )}
