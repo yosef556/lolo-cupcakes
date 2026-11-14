@@ -10,6 +10,7 @@ import PreloaderGate from "@/components/PreloaderGate";
 import InteractiveBackground from "@/components/InteractiveBackground";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lolo-cupcakes.vercel.app'),
   title: "لولو كب كيك | Lolo Cupcakes - تورتات وحلويات فاخرة بالقاهرة",
   description: "دار حلويات مصرية فاخرة تصنع الكب كيك الطازج وتورتات المناسبات المخصصة وحلويات النخبة بأيدي خبراء الحلويات باستخدام أرقى المكونات الطبيعية.",
   keywords: ["كب كيك", "تورتة مخصصة", "تورتات مناسبات", "حلويات فاخرة", "تورتة أعياد ميلاد", "القاهرة", "الشيخ زايد", "Lolo Cupcakes"],
