@@ -19,12 +19,16 @@ export async function POST(request: NextRequest) {
     const baseName = path.basename(file.name, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
     const uniqueName = `img_${Date.now()}_${baseName}${ext}`;
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    const filePath = path.join(uploadDir, uniqueName);
-
-    await writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/${uniqueName}`;
+    let publicUrl = `/uploads/${uniqueName}`;
+    try {
+      const uploadDir = path.join(process.cwd(), "public", "uploads");
+      const filePath = path.join(uploadDir, uniqueName);
+      await writeFile(filePath, buffer);
+    } catch {
+      // In serverless environments like Vercel with read-only root, serve as base64 data URI
+      const mime = file.type || "image/png";
+      publicUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,10 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined"
+    ? "/api/v1"
+    : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}/api/v1`
+    : "http://localhost:3000/api/v1");
 
 export interface ApiResponse<T> {
   success: boolean;
