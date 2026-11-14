@@ -18,8 +18,8 @@ export async function GET() {
         u.avatar_url AS "avatarUrl",
         u.created_at AS "createdAt",
         c.notes AS address,
-        (SELECT count(*)::int FROM orders o WHERE o.customer_phone = u.phone OR o.customer_id = u.id) AS "totalOrders",
-        (SELECT COALESCE(sum(o.total_amount), 0)::float FROM orders o WHERE (o.customer_phone = u.phone OR o.customer_id = u.id) AND o.order_status != 'CANCELLED') AS "totalSpent"
+        (SELECT count(*)::int FROM orders o WHERE (u.phone IS NOT NULL AND u.phone != '' AND o.customer_phone = u.phone) OR o.customer_id = u.id) AS "totalOrders",
+        (SELECT COALESCE(sum(o.total_amount), 0)::float FROM orders o WHERE ((u.phone IS NOT NULL AND u.phone != '' AND o.customer_phone = u.phone) OR o.customer_id = u.id) AND o.order_status != 'CANCELLED') AS "totalSpent"
       FROM users u
       LEFT JOIN customers c ON u.id = c.user_id
       ORDER BY u.created_at DESC
