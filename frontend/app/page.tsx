@@ -216,7 +216,7 @@ export default function HomePage() {
       if (keys.length === 0) return;
 
       // Only the primary cover image of each product
-      const primImg = p.primaryImageUrl || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : p.imageUrl);
+      const primImg = p.primaryImageUrl || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p as any).imageUrl);
       if (!primImg) return;
 
       keys.forEach((k) => {

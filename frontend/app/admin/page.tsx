@@ -113,11 +113,15 @@ import {
   Star,
   Crown,
   Ban,
-  History
+  History,
+  Sun,
+  Moon,
+  Menu
 } from "lucide-react";
 import Link from "next/link";
 import { playJoyfulChime } from "@/lib/soundFx";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import BrandLogo from "@/components/BrandLogo";
 import { broadcastSettingsChange } from "@/components/StoreSettingsContext";
 
@@ -136,7 +140,7 @@ export type AdminTab =
   | "CUSTOMERS"
   | "REVIEWS";
 
-export const compressAndGetUrl = (file: File, maxDim = 800, quality = 0.85): Promise<string> => {
+const compressAndGetUrl = (file: File, maxDim = 800, quality = 0.85): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -177,6 +181,8 @@ export const compressAndGetUrl = (file: File, maxDim = 800, quality = 0.85): Pro
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("METRICS");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   // Authentication & Admin Access Gate
   const { user, isLoggedIn, loading: authLoading, login, logout } = useAuth();
@@ -1577,7 +1583,7 @@ export default function AdminDashboardPage() {
         if (!rawResult) return;
 
         // Compress / resize to max 512x512 via Canvas to prevent heavy payloads breaking mobile
-        const img = new Image();
+        const img = new window.Image();
         img.src = rawResult;
         img.onload = async () => {
           const maxDim = 512;
@@ -1905,24 +1911,33 @@ export default function AdminDashboardPage() {
 
   if (!isLoggedIn || !user?.isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-sky-50 flex items-center justify-center p-4" dir="rtl">
-        <div className="max-w-md w-full bg-white rounded-[32px] p-8 shadow-2xl border border-rose-100 text-center space-y-6">
-          <div className="flex justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4 transition-colors" dir="rtl">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-rose-100 dark:border-slate-800 text-center space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="w-8" />
             <BrandLogo size="lg" showText={false} />
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+              title="تبديل المظهر"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            </button>
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900">بوابة إدارة النظام • Admin Access</h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">بوابة إدارة النظام • Admin Access</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               هذه المنطقة مخصصة حصرياً لمدير متجر Lolo Cupcakes
             </p>
           </div>
 
           {isLoggedIn && !user?.isAdmin ? (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold space-y-3 text-right">
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs font-bold space-y-3 text-right">
               <p>
-                أنت مسجل حالياً بحساب عميل: <span className="font-black text-slate-900">{user?.email || user?.fullName}</span>.
+                أنت مسجل حالياً بحساب عميل: <span className="font-black text-slate-900 dark:text-white">{user?.email || user?.fullName}</span>.
               </p>
-              <p className="text-slate-600">
+              <p className="text-slate-600 dark:text-slate-300">
                 هذا الحساب لا يملك صلاحيات المسؤول (Admin). يرجى تسجيل الخروج وتسجيل الدخول ببيانات مدير النظام.
               </p>
               <div className="flex items-center gap-2 pt-2">
@@ -1935,7 +1950,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <Link
                   href="/"
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-black text-xs hover:bg-slate-200 transition"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                 >
                   المتجر
                 </Link>
@@ -1959,30 +1974,30 @@ export default function AdminDashboardPage() {
               className="space-y-4 text-right text-xs"
             >
               {adminLoginError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-xs font-bold">
                   {adminLoginError}
                 </div>
               )}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">البريد الإلكتروني للإدارة:</label>
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">البريد الإلكتروني للإدارة:</label>
                 <input
                   type="text"
                   required
                   value={adminLoginEmail}
                   onChange={(e) => setAdminLoginEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400 font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   dir="ltr"
                 />
               </div>
               <div>
-                <label className="font-bold text-slate-700 block mb-1">كلمة المرور:</label>
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">كلمة المرور:</label>
                 <input
                   type="password"
                   required
                   value={adminLoginPassword}
                   onChange={(e) => setAdminLoginPassword(e.target.value)}
                   placeholder="كلمة مرور المسؤول..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400 font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -1995,7 +2010,7 @@ export default function AdminDashboardPage() {
               </button>
 
               <div className="text-center pt-2">
-                <Link href="/" className="text-slate-400 hover:text-slate-600 text-xs font-bold transition">
+                <Link href="/" className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold transition">
                   ← العودة إلى الصفحة الرئيسية للمتجر
                 </Link>
               </div>
@@ -2006,21 +2021,194 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const ADMIN_TABS = [
+    { id: "METRICS" as AdminTab, label: "المؤشرات والتشغيل", icon: BarChart3, badge: 0 },
+    { id: "ORDERS" as AdminTab, label: "إدارة الطلبات", icon: ShoppingBag, badge: metrics?.pendingOrdersCount || 0 },
+    { id: "PAYMENTS" as AdminTab, label: "مراجعة المدفوعات", icon: CreditCard, badge: metrics?.pendingPaymentsCount || 0 },
+    { id: "CAKES" as AdminTab, label: "طلبات التورتات الخاصة", icon: Cake, badge: 0 },
+    { id: "CUSTOMERS" as AdminTab, label: "العملاء والمستخدمين 👥", icon: Users, badge: 0 },
+    { id: "CATALOG" as AdminTab, label: "الأصناف والمنتجات ✨", icon: Layers, badge: 0 },
+    { id: "CATEGORIES" as AdminTab, label: "تصنيفات المتجر", icon: FolderPlus, badge: 0 },
+    { id: "ZONES" as AdminTab, label: "مناطق وأسعار التوصيل", icon: MapPin, badge: 0 },
+    { id: "COUPONS" as AdminTab, label: "كوبونات الخصم والعروض 🏷️", icon: Ticket, badge: 0 },
+    { id: "SLIDERS" as AdminTab, label: "سلايدر وصور المتجر", icon: SlidersHorizontal, badge: 0 },
+    { id: "LOYALTY" as AdminTab, label: "برنامج نقاط المكافآت", icon: Coins, badge: 0 },
+    { id: "REVIEWS" as AdminTab, label: "آراء العملاء والريفيوهات ⭐", icon: Star, badge: 0 },
+    { id: "SETTINGS" as AdminTab, label: "إعدادات المتجر والشعار", icon: Settings, badge: 0 },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#fafafc] text-slate-800 flex flex-col lg:flex-row" dir="rtl">
+    <div className="min-h-screen bg-[#fafafc] dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col lg:flex-row transition-colors" dir="rtl">
       
-      {/* Right Sidebar (RTL) - Luxury Enterprise Navigation */}
-      <aside className={`w-full lg:w-72 bg-white/95 backdrop-blur-xl border-l border-rose-100 flex flex-col shrink-0 lg:min-h-screen lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto transition-all duration-300 z-40 shadow-sm ${sidebarCollapsed ? "lg:w-20" : "lg:w-72"}`}>
+      {/* Mobile Top Navigation Bar (< lg) */}
+      <header className="lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-rose-100 dark:border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-xl bg-rose-50 dark:bg-slate-800 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-slate-700 active:scale-95 transition"
+              aria-label="القائمة الإدارية"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <BrandLogo size="xs" showText={true} href="/admin" />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Dark mode toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition"
+              title="تبديل المظهر"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            </button>
+
+            {/* Sound toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                if (next) playJoyfulChime();
+                showToast(next ? "تم تفعيل التنبيهات 🔔" : "تم كتم التنبيهات 🔕");
+              }}
+              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition"
+              title="التنبيهات الصوتية"
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={refreshMetrics}
+              className="p-2 rounded-xl bg-rose-50 dark:bg-slate-800 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-slate-700 transition"
+              title="تحديث البيانات"
+            >
+              <RefreshCw className={`w-4 h-4 ${metricsLoading || loading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Fast Horizontal Scrollable Tabs Strip */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2.5 mt-1 border-t border-rose-100/60 dark:border-slate-800 text-xs">
+          {ADMIN_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setMobileMenuOpen(false);
+                }}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-[11px] transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-xs font-black"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-rose-100 dark:border-slate-700"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+                {tab.badge > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                    isActive ? "bg-white text-rose-600" : "bg-rose-500 text-white"
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </header>
+
+      {/* Mobile Slide-out Drawer (< lg) */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex animate-in fade-in">
+          <div className="w-4/5 max-w-xs bg-white dark:bg-slate-900 h-full p-4 flex flex-col justify-between shadow-2xl border-l border-rose-100 dark:border-slate-800 overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-rose-100 dark:border-slate-800">
+                <BrandLogo size="xs" showText={true} href="/admin" />
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-1 text-xs">
+                {ADMIN_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
+                        isActive
+                          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-xs font-black"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{tab.label}</span>
+                      </div>
+                      {tab.badge > 0 && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                          isActive ? "bg-white text-rose-600" : "bg-rose-500 text-white"
+                        }`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-rose-100 dark:border-slate-800 space-y-2">
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-2xl bg-rose-50 dark:bg-slate-800 text-xs font-black text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-slate-700 transition"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>زيارة واجهة المتجر 🌐</span>
+              </Link>
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full py-2 text-center text-xs font-bold text-rose-500 hover:underline"
+              >
+                تسجيل الخروج
+              </button>
+            </div>
+          </div>
+          <div className="flex-1" onClick={() => setMobileMenuOpen(false)} />
+        </div>
+      )}
+
+      {/* Right Sidebar (RTL) - Desktop Luxury Enterprise Navigation (hidden on mobile, visible on lg) */}
+      <aside className={`hidden lg:flex flex-col shrink-0 lg:min-h-screen lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto transition-all duration-300 z-40 shadow-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-rose-100 dark:border-slate-800 ${sidebarCollapsed ? "lg:w-20" : "lg:w-72"}`}>
         
         {/* Sidebar Brand Header */}
-        <div className="p-5 border-b border-rose-100/80 flex items-center justify-between">
+        <div className="p-5 border-b border-rose-100/80 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
             <BrandLogo size="sm" showText={!sidebarCollapsed} href="/admin" />
           </div>
           <button
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-rose-50 transition"
+            className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-800 transition"
             title={sidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}
           >
             {sidebarCollapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -2032,14 +2220,14 @@ export default function AdminDashboardPage() {
           
           {/* Group 1: Operations */}
           <div>
-            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">العمليات والطلبات</p>}
+            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2">العمليات والطلبات</p>}
             <div className="space-y-1">
               <button
                 onClick={() => setActiveTab("METRICS")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "METRICS"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="المؤشرات والعمليات"
               >
@@ -2051,8 +2239,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("ORDERS")}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "ORDERS"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="إدارة الطلبات"
               >
@@ -2062,7 +2250,7 @@ export default function AdminDashboardPage() {
                 </div>
                 {metrics && metrics.pendingOrdersCount > 0 && !sidebarCollapsed && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                    activeTab === "ORDERS" ? "bg-white text-rose-600" : "bg-amber-100 text-amber-800"
+                    activeTab === "ORDERS" ? "bg-white text-rose-600" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                   }`}>
                     {metrics.pendingOrdersCount}
                   </span>
@@ -2073,8 +2261,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("PAYMENTS")}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "PAYMENTS"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="مراجعة المدفوعات"
               >
@@ -2095,8 +2283,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("CAKES")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "CAKES"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="عروض التورتات الخاصة"
               >
@@ -2108,8 +2296,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("CUSTOMERS")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "CUSTOMERS"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="إدارة العملاء والمستخدمين المسجلين"
               >
@@ -2121,14 +2309,14 @@ export default function AdminDashboardPage() {
 
           {/* Group 2: Catalog */}
           <div>
-            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">الكتالوج والمنتجات</p>}
+            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2">الكتالوج والمنتجات</p>}
             <div className="space-y-1">
               <button
                 onClick={() => setActiveTab("CATALOG")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "CATALOG"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="إدارة الأصناف والمنتجات"
               >
@@ -2140,8 +2328,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("CATEGORIES")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "CATEGORIES"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="تصنيفات المتجر"
               >
@@ -2153,14 +2341,14 @@ export default function AdminDashboardPage() {
 
           {/* Group 3: Logistics & Customization */}
           <div>
-            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">التوصيل والتسويق</p>}
+            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2">التوصيل والتسويق</p>}
             <div className="space-y-1">
               <button
                 onClick={() => setActiveTab("ZONES")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "ZONES"
-                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-200 font-black"
-                    : "text-slate-600 hover:bg-sky-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-sky-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="مناطق وأسعار التوصيل"
               >
@@ -2172,8 +2360,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("COUPONS")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "COUPONS"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-200 font-black"
-                    : "text-slate-600 hover:bg-purple-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="كوبونات الخصم والعروض"
               >
@@ -2185,8 +2373,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("SLIDERS")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "SLIDERS"
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                    : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="سلايدر وصور الصفحة الرئيسية"
               >
@@ -2198,8 +2386,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("LOYALTY")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "LOYALTY"
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-200 font-black"
-                    : "text-slate-600 hover:bg-amber-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-amber-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="نقاط المكافآت والولاء"
               >
@@ -2211,8 +2399,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab("REVIEWS")}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                   activeTab === "REVIEWS"
-                    ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md shadow-amber-200 font-black"
-                    : "text-slate-600 hover:bg-amber-50/70 hover:text-slate-900"
+                    ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md shadow-amber-200 dark:shadow-none font-black"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-amber-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
                 title="آراء وتقييمات العملاء"
               >
@@ -2224,13 +2412,13 @@ export default function AdminDashboardPage() {
 
           {/* Group 4: Settings */}
           <div>
-            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">النظام والهوية</p>}
+            {!sidebarCollapsed && <p className="px-3 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2">النظام والهوية</p>}
             <button
               onClick={() => setActiveTab("SETTINGS")}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold transition-all text-right ${
                 activeTab === "SETTINGS"
-                  ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 font-black"
-                  : "text-slate-600 hover:bg-rose-50/70 hover:text-slate-900"
+                  ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-200 dark:shadow-none font-black"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               }`}
               title="إعدادات المتجر والشعار"
             >
@@ -2241,10 +2429,10 @@ export default function AdminDashboardPage() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-rose-100/80 bg-rose-50/30">
+        <div className="p-4 border-t border-rose-100/80 dark:border-slate-800 bg-rose-50/30 dark:bg-slate-900/40">
           <Link
             href="/"
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-2xl bg-white border border-rose-200 text-xs font-black text-rose-600 hover:bg-rose-50 transition shadow-sm"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-2xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-slate-700 text-xs font-black text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 transition shadow-sm"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             {!sidebarCollapsed && <span>زيارة واجهة المتجر 🌐</span>}
@@ -2253,16 +2441,16 @@ export default function AdminDashboardPage() {
       </aside>
 
       {/* Main Content Workspace */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
+      <main className="flex-1 min-w-0 p-3 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
         
         {/* Top Workspace Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-rose-100/80 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100/80 dark:border-slate-800 shadow-sm transition-colors">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-600 border border-rose-200 mb-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-rose-500" />
               <span>لوحة التحكم المركزية • نظام التشغيل الفندقي</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               {activeTab === "METRICS" && "المؤشرات والعمليات التشغيلية"}
               {activeTab === "ORDERS" && "إدارة وتأكيد وتتبع الطلبات"}
               {activeTab === "CATALOG" && "إدارة الأصناف والمنتجات والأسعار"}
@@ -2277,12 +2465,23 @@ export default function AdminDashboardPage() {
               {activeTab === "SETTINGS" && "إعدادات المتجر والشعار وأرقام التواصل"}
               {activeTab === "REVIEWS" && "إدارة آراء وتقييمات العملاء المعروضة ⭐"}
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               تحكم شامل بكافة بيانات وتشغيل متجر لولو كب كيك بالقاهرة
             </p>
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+            {/* Dark Mode toggle button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2.5 rounded-2xl border transition shadow-sm flex items-center gap-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+              title={theme === "dark" ? "التحويل للوضع النهاري" : "التحويل للوضع الليلي (Dark Mode)"}
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+              <span className="hidden md:inline">{theme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}</span>
+            </button>
+
             {/* Audio chime toggle */}
             <button
               type="button"
@@ -2294,8 +2493,8 @@ export default function AdminDashboardPage() {
               }}
               className={`p-2.5 rounded-2xl border transition shadow-sm flex items-center gap-1.5 text-xs font-bold ${
                 soundEnabled 
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100" 
-                  : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900" 
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
               title={soundEnabled ? "كتم التنبيه الصوتي" : "تفعيل التنبيه الصوتي عند وصول طلبات"}
             >
@@ -2304,9 +2503,9 @@ export default function AdminDashboardPage() {
             </button>
 
             {/* Admin identity badge */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span className="font-bold text-slate-700">{user?.fullName || "المسؤول"}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200">{user?.fullName || "المسؤول"}</span>
               <button
                 type="button"
                 onClick={logout}
@@ -2318,7 +2517,7 @@ export default function AdminDashboardPage() {
 
             <button
               onClick={refreshMetrics}
-              className="px-4 py-2.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-100 transition shadow-sm flex items-center gap-2"
+              className="px-4 py-2.5 rounded-2xl bg-rose-50 dark:bg-slate-800 border border-rose-200 dark:border-slate-700 text-xs font-black text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-slate-700 transition shadow-sm flex items-center gap-2"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-rose-500 ${metricsLoading || loading ? "animate-spin" : ""}`} />
               <span>تحديث البيانات</span>
@@ -2347,30 +2546,30 @@ export default function AdminDashboardPage() {
           {metricsLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-28 bg-white rounded-3xl border border-rose-100 animate-pulse shadow-sm" />
+                <div key={i} className="h-28 bg-white dark:bg-slate-900 rounded-3xl border border-rose-100 dark:border-slate-800 animate-pulse shadow-sm" />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-1">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-slate-500 block">طلبات اليوم</span>
                 <span className="text-3xl font-black text-slate-900">{metrics?.todayOrdersCount || 0}</span>
                 <span className="text-[11px] text-slate-400 block">من إجمالي {metrics?.totalOrdersCount || 0} طلب مسجل</span>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-amber-200 shadow-sm space-y-1">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-amber-200 dark:border-amber-900/50 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-amber-700 block">طلبات قيد المراجعة</span>
                 <span className="text-3xl font-black text-amber-800">{metrics?.pendingOrdersCount || 0}</span>
                 <span className="text-[11px] text-slate-400 block">بانتظار التأكيد أو الدفع</span>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-blue-200 shadow-sm space-y-1">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-blue-200 dark:border-blue-900/50 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-blue-700 block">مدفوعات تنتظر التحقق</span>
                 <span className="text-3xl font-black text-blue-800">{metrics?.pendingPaymentsCount || 0}</span>
                 <span className="text-[11px] text-slate-400 block">إيصالات مرفوعة للدراسة</span>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-emerald-200 shadow-sm space-y-1">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-emerald-200 dark:border-emerald-900/50 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-emerald-700 block">مبيعات اليوم المؤكدة</span>
                 <span className="text-2xl font-black text-emerald-800">
                   {metrics?.todaySalesEgp ? metrics.todaySalesEgp.toFixed(2) : "0.00"} <span className="text-xs font-bold">ج.م</span>
@@ -2383,7 +2582,7 @@ export default function AdminDashboardPage() {
           )}
 
           {/* Recent Orders Table */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
             <h3 className="font-black text-base text-slate-900">أحدث الطلبات المسجلة</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
@@ -2397,9 +2596,9 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4 font-bold">حالة الدفع</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-rose-50">
+                <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                   {metrics?.recentOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-rose-50/40 transition">
+                    <tr key={o.id} className="hover:bg-rose-50/40 dark:hover:bg-slate-800/40 transition">
                       <td className="py-3 px-4 font-mono font-bold text-slate-900">{o.publicOrderNumber}</td>
                       <td className="py-3 px-4">{o.fulfillmentTypeLabelAr}</td>
                       <td className="py-3 px-4">{o.scheduledForDate} ({o.scheduledForTimeRange})</td>
@@ -2424,7 +2623,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Kitchen Slots & Daily Capacity Monitor */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rose-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
@@ -2454,7 +2653,7 @@ export default function AdminDashboardPage() {
                   const percent = Math.min(100, Math.round((slot.reservedCount / (slot.maxCapacity || 1)) * 100));
                   const timeLabel = slot.timeRangeDisplay || slot.timeDisplay || `${slot.startTime} - ${slot.endTime}`;
                   return (
-                    <div key={slot.id} className="p-4 rounded-2xl bg-white border border-rose-100 shadow-xs space-y-2.5">
+                    <div key={slot.id} className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-rose-100 dark:border-slate-700 shadow-xs space-y-2.5">
                       <div className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-1.5 font-black text-slate-900">
                           <Clock className="w-3.5 h-3.5 text-pink-500" />
@@ -2511,7 +2710,7 @@ export default function AdminDashboardPage() {
                   type="date"
                   value={remindersDate}
                   onChange={(e) => setRemindersDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl border border-sky-200 text-xs font-bold text-slate-800 bg-white"
+                  className="px-3 py-1.5 rounded-xl border border-sky-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800"
                 />
                 <button
                   type="button"
@@ -2527,7 +2726,7 @@ export default function AdminDashboardPage() {
 
             {remindersData ? (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-sky-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 shadow-sm">
                   <div>
                     <span className="text-xs font-black text-slate-900 block">
                       إجمالي الطلبات المستحقة ليوم {remindersData.targetDate}: {remindersData.totalOrdersDue} طلب
@@ -2571,7 +2770,7 @@ export default function AdminDashboardPage() {
                           <th className="py-2.5 px-3 font-bold text-center">إشعار العميل</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-sky-50">
+                      <tbody className="divide-y divide-sky-50 dark:divide-slate-800">
                         {remindersData.customerReminders.map((c) => {
                           const cleanPhone = c.customerPhone.replace(/\D/g, "");
                           const finalPhone = cleanPhone.startsWith("01") ? "2" + cleanPhone : cleanPhone;
@@ -2601,7 +2800,7 @@ export default function AdminDashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="p-6 rounded-2xl bg-white/70 border border-dashed border-sky-200 text-center space-y-2">
+              <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-dashed border-sky-200 dark:border-slate-700 text-center space-y-2">
                 <Clock className="w-8 h-8 text-sky-400 mx-auto" />
                 <p className="text-xs font-bold text-slate-700">اضغط على زر &quot;عرض تذكيرات التاريخ&quot; لاستخراج خطة التشغيل اليومية وتنبيهات العملاء</p>
               </div>
@@ -2642,7 +2841,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* Add Category Form (Column 1) */}
-            <div id="add-category" className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+            <div id="add-category" className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
                 <FolderPlus className="w-5 h-5 text-rose-500" />
                 <h3 className="font-black text-base text-slate-900">إضافة تصنيف جديد</h3>
@@ -2724,7 +2923,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Add Product Form (Column 2 & 3) */}
-            <div id="add-product" className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+            <div id="add-product" className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
                 <Plus className="w-5 h-5 text-rose-500" />
                 <h3 className="font-black text-base text-slate-900">إضافة صنف / حلوى جديدة للمتجر</h3>
@@ -3013,7 +3212,7 @@ export default function AdminDashboardPage() {
 
                   {/* Existing gallery thumbnails */}
                   {newProdGalleryImages.length > 0 && (
-                    <div className="flex flex-wrap gap-2.5 p-2 bg-white rounded-xl border border-pink-100">
+                    <div className="flex flex-wrap gap-2.5 p-2 bg-white dark:bg-slate-800 rounded-xl border border-pink-100 dark:border-slate-700">
                       {newProdGalleryImages.map((imgUrl, gIdx) => (
                         <div key={gIdx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-pink-200 group/img shadow-xs">
                           <Image src={imgUrl} alt={`صورة إضافية ${gIdx + 1}`} fill className="object-cover" />
@@ -3037,7 +3236,7 @@ export default function AdminDashboardPage() {
                       placeholder="رابط صورة إضافية (https://...)"
                       value={newGalleryInputUrl}
                       onChange={(e) => setNewGalleryInputUrl(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-mono text-[11px]"
+                      className="flex-1 px-3 py-2 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono text-[11px] text-slate-800 dark:text-white"
                     />
                     <button
                       type="button"
@@ -3118,7 +3317,7 @@ export default function AdminDashboardPage() {
           )}
 
           {/* Current Products Inventory Table */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="font-black text-base text-slate-900">أصناف المتجر الحالية ({catalogProducts.length})</h3>
@@ -3130,7 +3329,7 @@ export default function AdminDashboardPage() {
                 <select
                   value={catalogFilterCategory}
                   onChange={(e) => setCatalogFilterCategory(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl border border-rose-200 text-xs font-bold text-slate-700 bg-white"
+                  className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800"
                 >
                   <option value="">جميع التصنيفات</option>
                   {catalogCategories.map((c) => (
@@ -3213,7 +3412,7 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4 font-bold text-center">إدارة الصنف</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-rose-50">
+                <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                   {displayedCatalogProducts.map((p) => (
                     <tr 
                       key={p.id} 
@@ -3322,7 +3521,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Current Categories Inventory & Management Table (USER REQUEST: Full CRUD) */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-base text-slate-900">أقسام وتصنيفات المتجر الحالية ({catalogCategories.length})</h3>
@@ -3341,7 +3540,7 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-rose-50">
+                <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                   {catalogCategories.map((c) => (
                     <tr key={c.id} className="hover:bg-rose-50/30 transition">
                       <td className="py-3.5 px-4 font-bold text-slate-900">{c.nameAr}</td>
@@ -3378,7 +3577,7 @@ export default function AdminDashboardPage() {
           {/* Edit Product Modal (USER REQUEST: Full CRUD with sizes/variants & flavors/options) */}
           {editingProduct && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-5 shadow-2xl border border-rose-200 max-h-[92vh] overflow-y-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-5 shadow-2xl border border-rose-200 dark:border-slate-800 max-h-[92vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-rose-100 pb-3">
                   <div className="flex items-center gap-2">
                     <Pencil className="w-5 h-5 text-sky-600" />
@@ -3405,7 +3604,7 @@ export default function AdminDashboardPage() {
                         <select
                           value={editProdCategoryId}
                           onChange={(e) => setEditProdCategoryId(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800"
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
                           required
                         >
                           {catalogCategories.map((c) => (
@@ -3432,7 +3631,7 @@ export default function AdminDashboardPage() {
                         <select
                           value={editProdType}
                           onChange={(e) => setEditProdType(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800 text-xs"
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs"
                         >
                           {productTypesList.map((pt) => (
                             <option key={pt.code} value={pt.code}>
@@ -3458,7 +3657,7 @@ export default function AdminDashboardPage() {
                         <select
                           value={editProdSellingUnit}
                           onChange={(e) => setEditProdSellingUnit(e.target.value as any)}
-                          className="w-full px-3 py-2 rounded-xl border border-rose-200 font-bold bg-white text-slate-800"
+                          className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
                         >
                           <option value="PIECE">بالقطعة (PIECE)</option>
                           <option value="BOX">بالعلبة / البوكس (BOX)</option>
@@ -3627,7 +3826,7 @@ export default function AdminDashboardPage() {
 
                     {/* Thumbnails list */}
                     {editProdGalleryImages.length > 0 ? (
-                      <div className="flex flex-wrap gap-2.5 p-2 bg-white rounded-xl border border-pink-100">
+                      <div className="flex flex-wrap gap-2.5 p-2 bg-white dark:bg-slate-800 rounded-xl border border-pink-100 dark:border-slate-700">
                         {editProdGalleryImages.map((imgUrl, gIdx) => (
                           <div key={gIdx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-pink-200 group/img shadow-xs">
                             <Image src={imgUrl} alt={`صورة إضافية ${gIdx + 1}`} fill className="object-cover" />
@@ -3655,7 +3854,7 @@ export default function AdminDashboardPage() {
                         placeholder="رابط صورة إضافية (https://...)"
                         value={editGalleryInputUrl}
                         onChange={(e) => setEditGalleryInputUrl(e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-mono text-[11px]"
+                        className="flex-1 px-3 py-2 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono text-[11px] text-slate-800 dark:text-white"
                       />
                       <button
                         type="button"
@@ -3865,7 +4064,7 @@ export default function AdminDashboardPage() {
                           placeholder="رابط صورة مخصصة لهذه النكهة (اختياري - تتغير في الويب سايت عند اختيارها) 🍰"
                           value={newOptionImageUrl}
                           onChange={(e) => setNewOptionImageUrl(e.target.value)}
-                          className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white font-mono text-[11px]"
+                          className="flex-1 px-3 py-2 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-mono text-[11px] text-slate-800 dark:text-white"
                         />
                         <label className="cursor-pointer px-3 py-2 rounded-xl bg-pink-100 text-pink-700 hover:bg-pink-200 font-bold text-xs flex items-center gap-1.5 shrink-0 transition" title="رفع صورة من الجهاز للنكهة">
                           <Upload className="w-3.5 h-3.5" />
@@ -3950,7 +4149,7 @@ export default function AdminDashboardPage() {
           {/* Edit Category Modal (USER REQUEST: Full CRUD) */}
           {editingCategory && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-rose-200">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-rose-200 dark:border-slate-800">
                 <div className="flex items-center justify-between border-b border-rose-100 pb-3">
                   <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
                     <Pencil className="w-4 h-4 text-sky-600" />
@@ -4054,7 +4253,7 @@ export default function AdminDashboardPage() {
                   placeholder="بحث برقم الطلب، الهاتف، أو الاسم..."
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
-                  className="pr-9 pl-3.5 py-2 rounded-xl border border-rose-200 text-xs font-bold text-slate-700 bg-white min-w-[220px]"
+                  className="pr-9 pl-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 min-w-[220px]"
                 />
                 <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
               </div>
@@ -4062,7 +4261,7 @@ export default function AdminDashboardPage() {
               <select
                 value={orderStatusFilter}
                 onChange={(e) => setOrderStatusFilter(e.target.value)}
-                className="px-4 py-2 rounded-xl border border-rose-200 text-xs font-bold text-slate-700 bg-white"
+                className="px-4 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800"
               >
                 <option value="">جميع الحالات</option>
                 <option value="PENDING">قيد المراجعة (PENDING)</option>
@@ -4077,7 +4276,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-rose-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
                 <thead>
@@ -4092,7 +4291,7 @@ export default function AdminDashboardPage() {
                     <th className="py-3.5 px-4 font-bold text-center">إجراءات الإدارة</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-rose-50">
+                <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                   {orders
                     .filter((o) => {
                       if (!orderSearchQuery.trim()) return true;
@@ -4110,7 +4309,7 @@ export default function AdminDashboardPage() {
                          o.paymentMethod === "CASH" ? "الدفع عند الاستلام" : (o.paymentMethod || "الدفع عند الاستلام"));
 
                       return (
-                      <tr key={o.id} className="hover:bg-rose-50/40 transition">
+                      <tr key={o.id} className="hover:bg-rose-50/40 dark:hover:bg-slate-800/40 transition">
                         <td className="py-3.5 px-4">
                           <span className="font-mono font-black text-slate-900 block">#{o.publicOrderNumber}</span>
                           <span className="text-[10px] text-slate-400 block font-mono">
@@ -4246,7 +4445,7 @@ export default function AdminDashboardPage() {
           {/* Status Modal */}
           {selectedOrder && (
             <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-rose-100 space-y-4">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-rose-100 dark:border-slate-800 space-y-4">
                 <h3 className="font-bold text-base text-slate-900">
                   تحديث حالة الطلب #{selectedOrder.publicOrderNumber}
                 </h3>
@@ -4301,7 +4500,7 @@ export default function AdminDashboardPage() {
           {/* Reschedule Order Modal & Automated Customer WhatsApp Alert */}
           {rescheduleModalOpen && reschedulingOrder && (
             <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-sky-200 space-y-5 animate-in fade-in">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-sky-200 dark:border-sky-900/50 space-y-5 animate-in fade-in">
                 <div className="border-b border-sky-100 pb-3 flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-base text-slate-900">
@@ -4420,7 +4619,7 @@ export default function AdminDashboardPage() {
           {/* Reject Order Modal (USER REQUEST: رفض الطلب مع سبب الرفض وإشعار العميل) */}
           {rejectingOrder && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-red-200 space-y-4 animate-in fade-in">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-red-200 dark:border-red-900/50 space-y-4 animate-in fade-in">
                 <div className="flex items-center justify-between border-b border-red-100 pb-3">
                   <h3 className="font-black text-base text-red-700 flex items-center gap-2">
                     <XCircle className="w-5 h-5 text-red-600" />
@@ -4471,7 +4670,7 @@ export default function AdminDashboardPage() {
           {/* Full Customer & Order Details Modal (USER REQUEST: بيانات العميل لما يجيلي الطلب) */}
           {inspectingOrder && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-white rounded-[32px] p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-rose-100 space-y-6 my-8 max-h-[90vh] overflow-y-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-rose-100 dark:border-slate-800 space-y-6 my-8 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-rose-100 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
@@ -4768,7 +4967,7 @@ export default function AdminDashboardPage() {
             <select
               value={paymentStatusFilter}
               onChange={(e) => setPaymentStatusFilter(e.target.value)}
-              className="px-4 py-2 rounded-xl border border-rose-200 text-xs font-bold text-slate-700 bg-white"
+              className="px-4 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800"
             >
               <option value="">جميع الحالات</option>
               <option value="PENDING_VERIFICATION">بانتظار التحقق (PENDING_VERIFICATION)</option>
@@ -4779,7 +4978,7 @@ export default function AdminDashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {payments.length === 0 ? (
-              <div className="col-span-2 text-center py-12 bg-white rounded-3xl border border-rose-100 p-6">
+              <div className="col-span-2 text-center py-12 bg-white dark:bg-slate-900 rounded-3xl border border-rose-100 dark:border-slate-800 p-6">
                 <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
                 <p className="font-bold text-slate-700">لا توجد مدفوعات معلقة بهذه الحالة</p>
               </div>
@@ -4798,7 +4997,7 @@ export default function AdminDashboardPage() {
                 const firstProof = p.proofs && p.proofs.length > 0 ? p.proofs[0] : null;
 
                 return (
-                  <div key={p.id} className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+                  <div key={p.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-xs text-slate-800">
                         عملية #{p.id.slice(0, 8)} (طلب #{p.orderId ? p.orderId.slice(0, 8) : "—"})
@@ -4872,7 +5071,7 @@ export default function AdminDashboardPage() {
             <select
               value={cakeStatusFilter}
               onChange={(e) => setCakeStatusFilter(e.target.value)}
-              className="px-4 py-2 rounded-xl border border-rose-200 text-xs font-bold text-slate-700 bg-white"
+              className="px-4 py-2 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800"
             >
               <option value="">جميع الحالات</option>
               <option value="SUBMITTED">بانتظار التسعير (SUBMITTED)</option>
@@ -4884,7 +5083,7 @@ export default function AdminDashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {cakes.map((c) => (
-              <div key={c.id} className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+              <div key={c.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-bold text-sm text-slate-900">{c.publicReference}</span>
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -4938,7 +5137,7 @@ export default function AdminDashboardPage() {
           {/* Quote Modal */}
           {selectedCake && (
             <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-rose-100 space-y-4">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-rose-100 dark:border-slate-800 space-y-4">
                 <h3 className="font-bold text-base text-slate-900">
                   إرسال عرض سعر لطلب {selectedCake.publicReference}
                 </h3>
@@ -5001,7 +5200,7 @@ export default function AdminDashboardPage() {
         <div className="space-y-6 animate-in fade-in">
           {/* Top KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center font-black shadow-md shadow-rose-200 shrink-0">
                 <Users className="w-6 h-6" />
               </div>
@@ -5011,7 +5210,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center font-black shrink-0">
                 <ShoppingBag className="w-6 h-6" />
               </div>
@@ -5023,7 +5222,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 border border-purple-200 flex items-center justify-center font-black shrink-0">
                 <Coins className="w-6 h-6" />
               </div>
@@ -5035,7 +5234,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center font-black shrink-0">
                 <ShieldCheck className="w-6 h-6" />
               </div>
@@ -5169,7 +5368,7 @@ export default function AdminDashboardPage() {
                       <th className="py-3.5 px-4 font-bold text-center">تواصل فوري</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-rose-50">
+                  <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                     {customers
                       .filter((c) => {
                         if (customerTierFilter === "VIP" && c.customerTier !== "VIP") return false;
@@ -5190,7 +5389,7 @@ export default function AdminDashboardPage() {
                         const waPhone = cleanPhone.startsWith("01") ? `2${cleanPhone}` : cleanPhone;
 
                         return (
-                          <tr key={c.id} className="hover:bg-rose-50/40 transition">
+                          <tr key={c.id} className="hover:bg-rose-50/40 dark:hover:bg-slate-800/40 transition">
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-2.5">
                                 {c.avatarUrl ? (
@@ -5367,7 +5566,7 @@ export default function AdminDashboardPage() {
           {/* Customer Orders History Modal (USER REQUEST: عرض طلبات كل عميل وتواريخها) */}
           {ordersModalOpen && selectedCustomerForOrders && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-rose-200 space-y-5 animate-in fade-in max-h-[90vh] flex flex-col">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-rose-200 dark:border-slate-800 space-y-5 animate-in fade-in max-h-[90vh] flex flex-col">
                 <div className="border-b border-rose-100 pb-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center font-black shadow-md shadow-rose-200">
@@ -5418,7 +5617,7 @@ export default function AdminDashboardPage() {
                             <th className="py-3 px-3 font-bold">الأصناف</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-rose-50">
+                        <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                           {customerOrdersList.map((ord: any) => (
                             <tr key={ord.id} className="hover:bg-rose-50/30 transition">
                               <td className="py-3 px-3 font-mono font-black text-rose-600">
@@ -5491,7 +5690,7 @@ export default function AdminDashboardPage() {
           {/* Customer Loyalty Points Modal (USER REQUEST: تعديل وزيادة نقاط كل عميل) */}
           {pointsModalOpen && selectedCustomerForPoints && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-amber-200 space-y-5 animate-in fade-in">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-amber-200 dark:border-amber-900/50 space-y-5 animate-in fade-in">
                 <div className="border-b border-amber-100 pb-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shadow-md shadow-amber-200">
@@ -5691,7 +5890,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Categories Table */}
-          <div className="bg-white rounded-3xl border border-rose-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-5 border-b border-rose-50 flex items-center justify-between">
               <h3 className="font-black text-base text-slate-900">تصنيفات المتجر الحالية ({catalogCategories.length})</h3>
               <button
@@ -5714,9 +5913,9 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4 font-bold text-center">إجراءات الإدارة</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-rose-50">
+                <tbody className="divide-y divide-rose-50 dark:divide-slate-800">
                   {catalogCategories.map((c) => (
-                    <tr key={c.id} className="hover:bg-rose-50/40 transition">
+                    <tr key={c.id} className="hover:bg-rose-50/40 dark:hover:bg-slate-800/40 transition">
                       <td className="py-3 px-4 font-black text-slate-900 flex items-center gap-2">
                         <FolderPlus className="w-3.5 h-3.5 text-rose-400" />
                         <span>{c.nameAr}</span>
@@ -5754,7 +5953,7 @@ export default function AdminDashboardPage() {
       {/* Tab: Delivery Zones CRUD (USER REQUEST: Full CRUD) */}
       {activeTab === "ZONES" && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-sky-100 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-sky-100 dark:border-slate-800 shadow-sm space-y-5">
             <div className="border-b border-sky-100 pb-3 flex items-center justify-between">
               <div>
                 <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
@@ -5823,7 +6022,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Delivery Zones Table */}
-          <div className="bg-white rounded-3xl border border-sky-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-sky-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-5 border-b border-sky-50 flex items-center justify-between">
               <h3 className="font-black text-base text-slate-900">مناطق التوصيل المفعلة في النظام ({deliveryZones.length})</h3>
               <button
@@ -5848,9 +6047,9 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-sky-50">
+                <tbody className="divide-y divide-sky-50 dark:divide-slate-800">
                   {deliveryZones.map((z) => (
-                    <tr key={z.id} className="hover:bg-sky-50/40 transition">
+                    <tr key={z.id} className="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition">
                       <td className="py-3 px-4 font-black text-slate-900 flex items-center gap-2">
                         <MapPin className="w-3.5 h-3.5 text-sky-500" />
                         <span>{z.nameAr}</span>
@@ -5898,7 +6097,7 @@ export default function AdminDashboardPage() {
           {/* Edit Zone Modal */}
           {editingZone && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-sky-200">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-sky-200 dark:border-sky-900/50">
                 <div className="flex items-center justify-between border-b border-sky-100 pb-3">
                   <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
                     <Pencil className="w-4 h-4 text-sky-600" />
@@ -5985,7 +6184,7 @@ export default function AdminDashboardPage() {
             </button>
           </div>
 
-          <div className="bg-white rounded-3xl border border-purple-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-5 border-b border-purple-50 flex items-center justify-between">
               <h3 className="font-black text-base text-slate-900">الكوبونات المسجلة في النظام ({coupons.length})</h3>
               <button
@@ -6013,7 +6212,7 @@ export default function AdminDashboardPage() {
                     <th className="py-3.5 px-4 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-purple-50">
+                <tbody className="divide-y divide-purple-50 dark:divide-slate-800">
                   {coupons.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="py-10 text-center text-slate-400">
@@ -6087,7 +6286,7 @@ export default function AdminDashboardPage() {
           {/* Create / Edit Coupon Modal */}
           {couponModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-purple-200 animate-in fade-in">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-purple-200 dark:border-purple-900/50 animate-in fade-in">
                 <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                   <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
                     <Ticket className="w-5 h-5 text-purple-600" />
@@ -6355,7 +6554,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Custom Cake Showcase Slides Manager */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm space-y-6">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-pink-100 dark:border-slate-800 shadow-sm space-y-6">
             <div className="border-b border-pink-100 pb-4">
               <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
                 <Cake className="w-5 h-5 text-pink-500" />
@@ -6487,7 +6686,7 @@ export default function AdminDashboardPage() {
           {/* Edit Hero Slide Modal (USER REQUEST: تعديل شرائح الهيرو مع رفع مباشر من الجهاز) */}
           {editingHeroSlideIdx !== null && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-rose-200 animate-in fade-in zoom-in-95">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-rose-200 dark:border-slate-800 animate-in fade-in zoom-in-95">
                 <div className="flex items-center justify-between border-b border-rose-100 pb-3">
                   <div className="flex items-center gap-2">
                     <Pencil className="w-5 h-5 text-rose-500" />
@@ -6600,7 +6799,7 @@ export default function AdminDashboardPage() {
           {/* Edit Cake Slide Modal (USER REQUEST: تعديل شرائح تورتات العرض مع رفع مباشر من الجهاز) */}
           {editingCakeSlideIdx !== null && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-pink-200 animate-in fade-in zoom-in-95">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-pink-200 dark:border-pink-900/50 animate-in fade-in zoom-in-95">
                 <div className="flex items-center justify-between border-b border-pink-100 pb-3">
                   <div className="flex items-center gap-2">
                     <Cake className="w-5 h-5 text-pink-500" />
@@ -6728,7 +6927,7 @@ export default function AdminDashboardPage() {
 
             <form onSubmit={handleSaveLoyalty} className="space-y-6 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="p-5 rounded-2xl bg-white border border-amber-200 shadow-sm space-y-2">
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/40 shadow-sm space-y-2">
                   <span className="font-black text-slate-800 text-sm block">معدل اكتساب النقاط (Earning Rate)</span>
                   <p className="text-[11px] text-slate-500">كم جنيه يتم إنفاقه ليكسب العميل نقطة ولاء واحدة؟</p>
                   <div className="flex items-center gap-2 pt-2">
@@ -6744,7 +6943,7 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white border border-amber-200 shadow-sm space-y-2">
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/40 shadow-sm space-y-2">
                   <span className="font-black text-slate-800 text-sm block">قيمة استبدال النقطة (Redemption Value)</span>
                   <p className="text-[11px] text-slate-500">القيمة المادية للنقطة الواحدة بالجنيه عند الخصم من الفاتورة:</p>
                   <div className="flex items-center gap-2 pt-2">
@@ -6813,7 +7012,7 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
               {/* Preview Box */}
-              <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border-2 border-dashed border-rose-300 text-center space-y-3">
+              <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-rose-300 dark:border-slate-700 text-center space-y-3">
                 <span className="text-[11px] font-bold text-slate-400 block">معاينة الشعار المعتمد</span>
                 {currentLogo ? (
                   <div className="w-28 h-28 rounded-2xl overflow-hidden relative border border-rose-200 shadow-sm bg-white p-2">
@@ -6912,7 +7111,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Promo Banner Active Toggle & Text */}
-                <div className="p-4 rounded-2xl bg-white border border-purple-200 space-y-3">
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900/50 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="font-black text-xs text-purple-900">الشريط الإعلاني العلوي (Top Promo Banner) 📢:</label>
                     <button
@@ -6957,7 +7156,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Right Column: Hero Post Details */}
-              <div className="space-y-3 p-4 rounded-2xl bg-white border border-purple-200">
+              <div className="space-y-3 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900/50">
                 <h5 className="font-black text-xs text-purple-950 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-purple-600" />
                   <span>محتوى البوست الأول (Hero Post) بالصفحة الرئيسية</span>
@@ -7039,7 +7238,7 @@ export default function AdminDashboardPage() {
                     {(editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value) && (
                       <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-purple-200 shrink-0 bg-slate-100 shadow-sm">
                         <Image
-                          src={editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value || ""}
+                          src={(editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value) || ""}
                           alt="معاينة الهيرو"
                           fill
                           className="object-cover"
@@ -7163,7 +7362,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* Box: Inactive Product Badge & Custom Cake Price Note */}
-            <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
                 <Sparkles className="w-5 h-5 text-rose-500" />
                 <h4 className="font-black text-sm text-slate-900">نصوص التوفر والسعر التقديري للتورتة</h4>
@@ -7254,7 +7453,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Box: Custom Cake Flavors Editor */}
-            <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-rose-100 pb-3">
                 <div className="flex items-center gap-2">
                   <Cake className="w-5 h-5 text-rose-500" />
@@ -7356,7 +7555,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Dedicated Taste Highlights Manager (USER REQUEST: التحكم بجمل سر مذاقنا الطبيعي وربطها بالشرائح) */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-rose-100 pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500" />
@@ -7456,7 +7655,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Box 1: Store Address, Phone & Working Hours */}
-            <div className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
                 <Store className="w-5 h-5 text-rose-500" />
                 <h4 className="font-black text-sm text-slate-900">بيانات الفرع، الهاتف، وساعات العمل</h4>
@@ -7537,7 +7736,7 @@ export default function AdminDashboardPage() {
                     {(editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value) && (
                       <div className="w-9 h-9 rounded-xl overflow-hidden relative border border-rose-300 shrink-0 bg-white p-0.5 shadow-sm">
                         <Image
-                          src={editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value || ""}
+                          src={(editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value) || ""}
                           alt="أيقونة التبويب"
                           fill
                           className="object-contain"
@@ -7626,7 +7825,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Box 2: Facebook Page & n8n Webhook Integration */}
-            <div className="bg-white p-6 rounded-3xl border border-sky-100 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-sky-100 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-sky-100 pb-3">
                 <Share2 className="w-5 h-5 text-sky-600" />
                 <h4 className="font-black text-sm text-slate-900">أتمتة فيسبوك وربط Webhook عبر n8n</h4>
@@ -7712,7 +7911,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Box 3: Payment Accounts Customization (USER REQUEST: فودافون كاش وإنستاباي) */}
-            <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-sm space-y-4 md:col-span-2">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-emerald-100 dark:border-slate-800 shadow-sm space-y-4 md:col-span-2">
               <div className="flex items-center gap-2 border-b border-emerald-100 pb-3">
                 <CreditCard className="w-5 h-5 text-emerald-600" />
                 <h4 className="font-black text-sm text-slate-900">بيانات تحويل المدفوعات (فودافون كاش وإنستاباي InstaPay)</h4>
@@ -7761,7 +7960,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* All Store Settings Raw List */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
             <h4 className="font-black text-base text-slate-900 border-b border-rose-100 pb-3">جميع إعدادات وسياسات النظام</h4>
             <div className="space-y-3">
               {settings.map((s) => (
@@ -7825,7 +8024,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Reviews List */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-amber-100 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-amber-100 dark:border-slate-800 shadow-sm space-y-5">
             <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-amber-100 pb-4 gap-4">
               <div>
                 <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
@@ -7992,7 +8191,7 @@ export default function AdminDashboardPage() {
           {/* Add Review Modal */}
           {reviewModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 shadow-2xl border border-amber-200">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 shadow-2xl border border-amber-200 dark:border-amber-900/50">
                 <div className="flex items-center justify-between border-b border-amber-100 pb-3">
                   <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
                     <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -8081,7 +8280,7 @@ export default function AdminDashboardPage() {
           {/* Modal: Dynamic Product Types Manager (USER REQUEST: إدارة وتعديل وحذف أنواع المنتجات) */}
           {showTypeManagerModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl border border-rose-200 max-h-[90vh] overflow-y-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl border border-rose-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-rose-100 pb-3">
                   <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
                     <SlidersHorizontal className="w-5 h-5 text-rose-500" />

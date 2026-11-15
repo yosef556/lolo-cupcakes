@@ -20,7 +20,7 @@ import {
   CreateOrderRequest,
   OrderResponseDto
 } from "@/lib/api";
-import DeliveryLocationPicker from "@/components/DeliveryLocationPicker";
+import DeliveryLocationPicker, { isLocationInZayedOctober } from "@/components/DeliveryLocationPicker";
 import PartyUpsellAddons, { UpsellItem, PARTY_ADDONS } from "@/components/PartyUpsellAddons";
 import LoyaltyPointsWidget from "@/components/LoyaltyPointsWidget";
 import { useStoreSettings } from "@/components/StoreSettingsContext";
@@ -32,6 +32,7 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   AlertCircle,
+  AlertTriangle,
   Smartphone,
   Share2,
   ExternalLink,
@@ -84,10 +85,11 @@ function CheckoutContent() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
 
-  // GPS Location State (USER REQUEST: إجبار اللوكيشن أثناء طلب الأوردر لمنع التحايل)
+  // GPS Location State (USER REQUEST: تحديد موقع GPS والتحقق من نطاق زايد وأكتوبر حصرياً)
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; mapsUrl: string } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [isOutOfZone, setIsOutOfZone] = useState<boolean>(false);
 
   // Auto-load previously saved GPS location (e.g. from registration or prior order)
   useEffect(() => {
@@ -96,11 +98,14 @@ function CheckoutContent() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.lat && parsed?.lng) {
-          setGpsCoords({
+          const coords = {
             lat: parsed.lat,
             lng: parsed.lng,
             mapsUrl: parsed.mapsUrl || `https://maps.google.com/?q=${parsed.lat},${parsed.lng}`
-          });
+          };
+          setGpsCoords(coords);
+          const inside = isLocationInZayedOctober(coords.lat, coords.lng);
+          setIsOutOfZone(!inside);
         }
       }
     } catch {}
@@ -123,23 +128,8 @@ function CheckoutContent() {
         localStorage.setItem("user_gps_location", JSON.stringify(coordsObj));
         setGpsLoading(false);
 
-        // Auto-match delivery zone from GPS coordinates
-        let matchedZone: DeliveryZoneDto | undefined;
-        if (lng < 31.12) {
-          matchedZone = zones.find((z) => z.nameAr.includes("زايد") || z.nameAr.includes("اكتوبر"));
-        } else if (lat < 29.98 && lng >= 31.20 && lng <= 31.35) {
-          matchedZone = zones.find((z) => z.nameAr.includes("معادي"));
-        } else if (lat >= 30.08 && lng >= 31.20 && lng <= 31.32) {
-          matchedZone = zones.find((z) => z.nameAr.includes("شبرا"));
-        } else if (lng > 31.32) {
-          matchedZone = zones.find((z) => z.nameAr.includes("تجمع") || z.nameAr.includes("جديد") || z.nameAr.includes("نصر"));
-        }
-
-        if (matchedZone) {
-          setSelectedZoneId(matchedZone.id);
-        }
-
         // Reverse geocoding to auto-fill street address if empty
+        let detected = "";
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`,
@@ -151,23 +141,30 @@ function CheckoutContent() {
               const addr = data.address;
               const road = addr.road || addr.pedestrian || addr.street || "";
               const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
-              const city = addr.city || addr.town || "القاهرة";
-              const detected = [road, suburb, city].filter(Boolean).join("، ");
+              const city = addr.city || addr.town || "";
+              detected = [road, suburb, city].filter(Boolean).join("، ");
               if (detected) {
                 setStreetAddress((prev) => prev ? prev : detected);
-              }
-
-              // Fallback match from geocoded address text if coordinate check didn't match
-              if (!matchedZone && zones.length > 0) {
-                const fullText = `${road} ${suburb} ${city}`.toLowerCase();
-                const found = zones.find((z) => fullText.includes(z.nameAr.replace(/[أإآ]/g, "ا").trim()));
-                if (found) {
-                  setSelectedZoneId(found.id);
-                }
               }
             }
           }
         } catch {}
+
+        // Strict Geofencing Check: Sheikh Zayed & 6th of October ONLY
+        const inside = isLocationInZayedOctober(lat, lng, detected);
+        setIsOutOfZone(!inside);
+
+        if (!inside) {
+          setSelectedZoneId("");
+          setGpsError("⚠️ عذراً، موقعك الحالي يقع خارج نطاق التوصيل المتاح لدينا. التوصيل متوفر حصرياً لسكان (الشيخ زايد و 6 أكتوبر) فقط.");
+        } else {
+          setGpsError(null);
+          // Match Zayed/October delivery zone
+          const matchedZone = zones.find((z) => z.nameAr.includes("زايد") || z.nameAr.includes("اكتوبر")) || zones[0];
+          if (matchedZone) {
+            setSelectedZoneId(matchedZone.id);
+          }
+        }
       },
       (err) => {
         setGpsLoading(false);
@@ -177,7 +174,7 @@ function CheckoutContent() {
           setGpsError("تعذر الاتصال بالأقمار الصناعية لتحديد الموقع بدقة، يرجى المحاولة مجدداً والتأكد من تشغيل الـ GPS.");
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 
@@ -325,30 +322,29 @@ function CheckoutContent() {
     );
   };
 
-  const handleLocationPicked = (loc: { neighborhood: string; formattedAddress: string; lat?: number; lng?: number }) => {
-    // Robust normalization matching with existing zones
-    const norm = (s: string) => s.replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/\s+/g, " ").trim();
-    const locNorm = norm(loc.neighborhood);
+  const handleLocationPicked = (loc: { neighborhood: string; formattedAddress: string; lat?: number; lng?: number; isOutOfZone?: boolean }) => {
+    let outOfZone = loc.isOutOfZone ?? false;
+    if (loc.lat && loc.lng) {
+      outOfZone = !isLocationInZayedOctober(loc.lat, loc.lng, loc.formattedAddress);
+    }
+    setIsOutOfZone(outOfZone);
 
-    let match = zones.find((z) => {
-      const zNorm = norm(z.nameAr);
-      return locNorm.includes(zNorm) || zNorm.includes(locNorm);
-    });
-
-    if (!match) {
-      const keywords = ["زايد", "اكتوبر", "تجمع", "معادي", "نصر", "جديده", "زمالك", "دقي", "مهندسين", "مقطم"];
-      for (const kw of keywords) {
-        if (locNorm.includes(kw)) {
-          match = zones.find((z) => norm(z.nameAr).includes(kw));
-          if (match) break;
-        }
+    if (outOfZone) {
+      setSelectedZoneId("");
+      setGpsError("⚠️ عذراً، موقعك الحالي يقع خارج نطاق التوصيل المتاح لدينا. التوصيل متوفر حصرياً لسكان (الشيخ زايد و 6 أكتوبر) فقط.");
+    } else {
+      setGpsError(null);
+      // Auto-match delivery zone from zones list
+      const zayedZone = zones.find((z) => z.nameAr.includes("زايد") || z.nameAr.includes("اكتوبر")) || zones[0];
+      if (zayedZone) {
+        setSelectedZoneId(zayedZone.id);
       }
     }
 
-    if (match) {
-      setSelectedZoneId(match.id);
+    if (loc.formattedAddress) {
+      setStreetAddress(loc.formattedAddress);
     }
-    setStreetAddress(loc.formattedAddress);
+
     if (loc.lat && loc.lng) {
       const coordsObj = {
         lat: loc.lat,
@@ -408,33 +404,24 @@ function CheckoutContent() {
 
     if (fulfillmentType === "DELIVERY") {
       if (!gpsCoords) {
-        setSubmitError("⚠️ إجباري: يرجى الضغط على زر 'تحديد موقع الـ GPS' لتأكيد موقع التوصيل الدقيق ومنع أي خطأ أو إلغاء للطلب.");
+        setSubmitError("⚠️ إجباري: يرجى تحديد موقعك عبر الـ GPS لتأكيد عنوان التوصيل بدقة.");
         const el = document.getElementById("gps-delivery-section");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         return false;
       }
-      if (!selectedZoneId) {
-        setSubmitError("يرجى اختيار منطقة التوصيل");
+
+      // Strict Geofence verification for Sheikh Zayed & 6th of October ONLY
+      const inside = isLocationInZayedOctober(gpsCoords.lat, gpsCoords.lng, streetAddress);
+      if (isOutOfZone || !inside) {
+        setSubmitError("⚠️ عذراً، خدمة التوصيل متوفرة حصرياً لسكان (الشيخ زايد و 6 أكتوبر) فقط. موقعك المكتشف خارج هذا النطاق، يمكنك اختيار 'استلام من الفرع' (بدون رسوم توصيل) للمتابعة.");
+        const el = document.getElementById("gps-delivery-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
         return false;
       }
 
-      // Anti-fraud GPS vs Selected Zone cross check
-      const chosenZone = zones.find((z) => z.id === selectedZoneId);
-      if (chosenZone && gpsCoords.lng) {
-        const isWestGps = gpsCoords.lng < 31.12; // Sheikh Zayed / 6th of October
-        const isEastOrSouthGps = gpsCoords.lng > 31.22; // Maadi, Tagamoa, Nasr City
-        const isZayedZone = chosenZone.nameAr.includes("زايد") || chosenZone.nameAr.includes("اكتوبر");
-        const isMaadiZone = chosenZone.nameAr.includes("معادي");
-        const isEastZone = chosenZone.nameAr.includes("تجمع") || chosenZone.nameAr.includes("نصر") || chosenZone.nameAr.includes("جديد");
-
-        if (isWestGps && (isMaadiZone || isEastZone)) {
-          setSubmitError(`⚠️ تنبيه: موقع الـ GPS المكتشف لجهازك يقع في (الشيخ زايد / 6 أكتوبر)، بينما قمت باختيار منطقة (${chosenZone.nameAr}). يرجى اختيار المنطقة الحقيقية لموقعك.`);
-          return false;
-        }
-        if (isEastOrSouthGps && isZayedZone) {
-          setSubmitError(`⚠️ تنبيه: موقع الـ GPS المكتشف لجهازك يقع في القاهرة (${chosenZone.nameAr}) لا تتطابق معه. يرجى اختيار منطقتك الحقيقية.`);
-          return false;
-        }
+      if (!selectedZoneId) {
+        setSubmitError("يرجى اختيار منطقة التوصيل المعتمدة");
+        return false;
       }
 
       if (!streetAddress.trim()) {
@@ -670,98 +657,63 @@ function CheckoutContent() {
             {/* Delivery Details */}
             {fulfillmentType === "DELIVERY" ? (
               <div className="space-y-5 pt-2">
-                {/* Mandatory GPS Verification Box (USER REQUEST: إجبار اللوكيشن لمنع التحايل) */}
-                <div id="gps-delivery-section" className={`p-4 sm:p-5 rounded-3xl border-2 transition-all duration-300 ${
-                  gpsCoords 
-                    ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 shadow-sm" 
-                    : "bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border-rose-300 dark:border-rose-800 ring-4 ring-rose-100/50 dark:ring-rose-900/30 shadow-md"
-                }`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wide bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
-                        {gpsCoords ? (
-                          <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            تم تأكيد وتثبيت موقع الـ GPS بنجاح ✅
-                          </span>
-                        ) : (
-                          <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5 animate-pulse">
-                            <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
-                            تحديد موقع الـ GPS إجباري لتأكيد الطلب 📍
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                        {gpsCoords ? "إحداثيات موقعك الجغرافي الدقيق" : "تحديد موقعك الحالي عبر الأقمار الصناعية (GPS)"}
-                      </h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
-                        {gpsCoords 
-                          ? "سيصل المندوب مباشرة إلى هذا الموقع الدقيق لضمان سرعة الاستلام وسلامة الكعكات المبردة."
-                          : "لتفادي أي أخطاء في العنوان أو إلغاء للطلب، يجب تأكيد موقعك الحالي من هاتفك أو جهازك."}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleCaptureGps}
-                        disabled={gpsLoading}
-                        className={`px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-sm ${
-                          gpsCoords
-                            ? "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-700"
-                            : "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:brightness-110 active:scale-95"
-                        } disabled:opacity-50`}
-                      >
-                        <Navigation className={`w-3.5 h-3.5 ${gpsLoading ? "animate-spin text-white" : ""}`} />
-                        <span>{gpsLoading ? "جاري التقاط الموقع..." : (gpsCoords ? "تحديث الموقع عبر GPS 🔄" : "📍 تحديد موقعي الآن")}</span>
-                      </button>
-                    </div>
-                  </div>
+                {/* Unified Interactive GPS & Geofenced Map Picker */}
+                <div id="gps-delivery-section" className="space-y-4">
+                  <DeliveryLocationPicker 
+                    onLocationSelect={handleLocationPicked} 
+                    selectedZoneName={zones.find((z) => z.id === selectedZoneId)?.nameAr}
+                    initialCoords={gpsCoords}
+                    isOutOfZone={isOutOfZone}
+                    zoneWarning={gpsError}
+                  />
 
                   {gpsCoords && (
-                    <div className="mt-3 pt-3 border-t border-emerald-200/60 dark:border-emerald-800/60 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                      <span className="font-bold text-emerald-800 dark:text-emerald-300">
-                        📍 الإحداثيات: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        📍 الإحداثيات المعتمدة: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
                       </span>
                       <a
                         href={gpsCoords.mapsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="font-black text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+                        className="font-black text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1"
                       >
-                        <span>فتح موقعك على خرائط جوجل 🗺️</span>
+                        <span>فتح الموقع على خرائط جوجل 🗺️</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
                   )}
 
-                  {gpsError && (
-                    <div className="mt-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
-                      <span>{gpsError}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Visual Location Picker Component */}
-                <DeliveryLocationPicker 
-                  onLocationSelect={handleLocationPicked} 
-                  selectedZoneName={zones.find((z) => z.id === selectedZoneId)?.nameAr}
-                />
-
-                <div>
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">منطقة التوصيل المعتمدة *</label>
-                  <select
-                    value={selectedZoneId}
-                    onChange={(e) => setSelectedZoneId(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-rose-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
-                  >
-                    {zones.map((zone) => (
-                      <option key={zone.id} value={zone.id} className="dark:bg-slate-800 dark:text-white">
-                        {zone.nameAr} — رسوم التوصيل: {zone.deliveryFee.toFixed(2)} ج.م (الحد الأدنى للطلب: {zone.minOrderAmount.toFixed(0)} ج.م)
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">منطقة التوصيل المعتمدة *</label>
+                    <select
+                      value={selectedZoneId}
+                      onChange={(e) => setSelectedZoneId(e.target.value)}
+                      className={`w-full px-4 py-2.5 rounded-xl border text-xs font-bold bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 ${
+                        isOutOfZone
+                          ? "border-rose-400 dark:border-rose-700 text-rose-700 dark:text-rose-400"
+                          : "border-rose-200 dark:border-slate-700 text-slate-800 dark:text-white focus:ring-rose-400"
+                      }`}
+                    >
+                      {isOutOfZone ? (
+                        <option value="" className="text-rose-600 font-bold">
+                          ⚠️ موقعك الحالي خارج نطاق التوصيل (متاح الشيخ زايد و 6 أكتوبر فقط)
+                        </option>
+                      ) : !selectedZoneId ? (
+                        <option value="">اختر منطقة التوصيل</option>
+                      ) : null}
+                      {zones.map((zone) => (
+                        <option key={zone.id} value={zone.id} className="dark:bg-slate-800 dark:text-white">
+                          {zone.nameAr} — رسوم التوصيل: {zone.deliveryFee.toFixed(2)} ج.م (الحد الأدنى: {zone.minOrderAmount.toFixed(0)} ج.م)
+                        </option>
+                      ))}
+                    </select>
+                    {isOutOfZone && (
+                      <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1">
+                        * يمكنك تعديل طريقة الاستلام بالأعلى إلى &quot;استلام من الفرع&quot; لمتابعة طلبك مجاناً وبدون أي رسوم توصيل.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1356,13 +1308,26 @@ function CheckoutContent() {
               </div>
             )}
 
+            {/* Out of Zone Delivery Warning Banner */}
+            {fulfillmentType === "DELIVERY" && isOutOfZone && (
+              <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 dark:border-rose-800 text-xs text-rose-950 dark:text-rose-200 font-bold space-y-1.5 shadow-sm animate-in fade-in">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-black">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>⚠️ التوصيل متوفر لزايد وأكتوبر فقط</span>
+                </div>
+                <p className="text-[11px] text-rose-800 dark:text-rose-300 leading-relaxed">
+                  موقعك المكتشف خارج نطاق التوصيل المتاح حالياً. يرجى اختيار &quot;استلام من الفرع&quot; بالأعلى لإتمام طلبك مجاناً وبدون رسوم توصيل.
+                </p>
+              </div>
+            )}
+
             {/* Mandatory GPS Reminder Badge if delivery is chosen without GPS */}
-            {fulfillmentType === "DELIVERY" && !gpsCoords && (
+            {fulfillmentType === "DELIVERY" && !gpsCoords && !isOutOfZone && (
               <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 font-bold flex items-start gap-2 shadow-xs animate-in fade-in">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <div>
                   <span className="block font-black text-amber-950 dark:text-amber-100 mb-0.5">⚠️ تحديد موقع الـ GPS إجباري:</span>
-                  يُرجى الضغط على زر &quot;تحديد موقعي الآن&quot; في قسم التوصيل أعلاه لتأكيد موقعك ومنع التحايل أو إلغاء الطلب.
+                  يُرجى الضغط على زر &quot;تحديد موقعي الحالي تلقائياً&quot; في قسم التوصيل لتأكيد موقعك بدقة.
                 </div>
               </div>
             )}
@@ -1370,13 +1335,22 @@ function CheckoutContent() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={submitting || quoteLoading || !!quoteError}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white font-black text-sm shadow-rose-glow hover:brightness-105 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={submitting || quoteLoading || !!quoteError || (fulfillmentType === "DELIVERY" && (isOutOfZone || !gpsCoords))}
+              className={`w-full py-4 px-6 rounded-2xl text-white font-black text-sm shadow-rose-glow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                fulfillmentType === "DELIVERY" && isOutOfZone
+                  ? "bg-rose-700 hover:bg-rose-800"
+                  : "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:brightness-105 active:scale-95"
+              }`}
             >
               {submitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>جاري تسجيل وحجز الطلب...</span>
+                </>
+              ) : fulfillmentType === "DELIVERY" && isOutOfZone ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-white" />
+                  <span>خارج نطاق التوصيل (متاح زايد وأكتوبر فقط) ⚠️</span>
                 </>
               ) : (
                 <>
