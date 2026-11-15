@@ -72,16 +72,18 @@ export const DEFAULT_CAKE_SLIDES: CakeSlideDto[] = [
 ];
 
 export interface TasteHighlightDto {
-  label: string;
+  title?: string;
+  label?: string;
+  desc?: string;
   icon: string;
   slideIndex: number;
 }
 
 export const DEFAULT_TASTE_HIGHLIGHTS: TasteHighlightDto[] = [
-  { label: "فراولة طازجة", icon: "🍓", slideIndex: 2 },
-  { label: "شوكولاتة بلجيكية", icon: "🍫", slideIndex: 1 },
-  { label: "زبدة نيوزيلندية", icon: "🧈", slideIndex: 0 },
-  { label: "تزيين فني يدوي", icon: "✨", slideIndex: 3 },
+  { title: "زبدة نيوزيلندية طبيعية 100%", label: "زبدة نيوزيلندية", desc: "قوام غني ونكهة مخبوزات أصيلة تذوب بالفم", icon: "🧈", slideIndex: 0 },
+  { title: "شوكولاتة بلجيكية فاخرة", label: "شوكولاتة بلجيكية", desc: "نقاء 70% كاكاو مع كريمة غنية وسلسة", icon: "🍫", slideIndex: 1 },
+  { title: "فانيليا مدغشقر الطبيعية", label: "فانيليا مدغشقر", desc: "أعواد فانيليا بوربون الأصلية بدون أي نكهات صناعية", icon: "🌿", slideIndex: 2 },
+  { title: "توت وفراولة فريش يومياً", label: "توت وفراولة فريش", desc: "فواكه طبيعية طازجة منتقاة بعناية كل صباح", icon: "🍓", slideIndex: 3 },
 ];
 
 export const DEFAULT_CUSTOM_CAKE_FLAVORS: string[] = [
@@ -360,6 +362,9 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
     if (typeof document === "undefined") return;
     if (value.storeTabTitle) {
       document.title = value.storeTabTitle;
+      try {
+        localStorage.setItem("store_tab_title", value.storeTabTitle);
+      } catch {}
     }
     const iconUrl = value.storeFaviconUrl || value.storeLogoUrl || "/favicon.ico";
     if (iconUrl) {
@@ -370,6 +375,9 @@ export function StoreSettingsProvider({ children }: { children: React.ReactNode 
         document.head.appendChild(link);
       }
       link.href = iconUrl;
+      try {
+        localStorage.setItem("store_favicon_url", iconUrl);
+      } catch {}
     }
   }, [value.storeTabTitle, value.storeFaviconUrl, value.storeLogoUrl]);
 

@@ -122,6 +122,7 @@ function ShopContent() {
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
 
   // Floating Toast Notification
   const [toastMsg, setToastMsg] = useState<{ title: string; price: number } | null>(null);
@@ -386,90 +387,176 @@ function ShopContent() {
         </p>
       </div>
 
-      {/* Search and Category Filters */}
-      <div className="space-y-4">
-        
-        {/* Search Input */}
-        <div className="max-w-md mx-auto relative px-1">
-          <input
-            type="text"
-            placeholder="ابحث عن الكب كيك، التورتة، المخبوزات، أو الشرقي..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-5 py-3 pr-11 pl-10 rounded-2xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent shadow-xs transition-all"
-          />
-          <Search className="w-4 h-4 text-rose-400 dark:text-pink-400 absolute top-3.5 right-4 pointer-events-none" />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 absolute top-2.5 left-3 flex items-center justify-center text-xs transition"
-              title="مسح البحث"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Primary Categories Navigation (Mobile-Friendly Smooth Horizontal Scroll) */}
-        <div className="relative">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none no-scrollbar pt-1 px-1">
-            <button
-              onClick={() => { setSelectedCategory(""); setSelectedSubcategory("ALL"); }}
-              className={`px-4 py-2 rounded-2xl text-xs font-black transition-all shrink-0 flex items-center gap-2 shadow-xs ${
-                selectedCategory === ""
-                  ? "bg-gradient-to-r from-rose-500 via-pink-500 to-sky-500 text-white shadow-rose-glow scale-102"
-                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700 border border-rose-100 dark:border-slate-700"
-              }`}
-            >
-              <span>✨</span>
-              <span>جميع الحلويات</span>
-            </button>
-            {categories.map((cat) => {
-              const icon = CATEGORY_META[cat.slug]?.icon || "🧁";
-              const isSelected = selectedCategory === cat.slug;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => { setSelectedCategory(cat.slug); setSelectedSubcategory("ALL"); }}
-                  className={`px-4 py-2 rounded-2xl text-xs font-black transition-all shrink-0 flex items-center gap-2 shadow-xs ${
-                    isSelected
-                      ? "bg-gradient-to-r from-rose-500 via-pink-500 to-sky-500 text-white shadow-rose-glow scale-102"
-                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700 border border-rose-100 dark:border-slate-700"
-                  }`}
-                >
-                  <span>{icon}</span>
-                  <span>{cat.nameAr}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Hierarchical Subcategories Chips Bar (Contextual) */}
-        {selectedCategory && CATEGORY_META[selectedCategory]?.subcategories && (
-          <div className="flex items-center gap-1.5 overflow-x-auto py-2 px-3 bg-rose-50/70 dark:bg-slate-800/80 rounded-2xl border border-rose-100 dark:border-slate-700 scrollbar-none no-scrollbar animate-in fade-in">
-            <span className="text-[11px] font-black text-rose-700 dark:text-pink-400 shrink-0 flex items-center gap-1 pl-2 border-l border-rose-200 dark:border-slate-700">
-              <span>الأصناف:</span>
-            </span>
-            {CATEGORY_META[selectedCategory].subcategories.map((sub) => {
-              const isSubActive = selectedSubcategory === sub.id;
-              return (
-                <button
-                  key={sub.id}
-                  type="button"
-                  onClick={() => setSelectedSubcategory(sub.id)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0 shadow-xs ${
-                    isSubActive
-                      ? "bg-rose-500 text-white shadow-sm font-black"
-                      : "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-rose-200 dark:border-slate-600 hover:bg-rose-50 dark:hover:bg-slate-600"
-                  }`}
-                >
-                  {sub.nameAr}
-                </button>
-              );
-            })}
-          </div>
+      {/* Search Input */}
+      <div className="max-w-md mx-auto relative px-1">
+        <input
+          type="text"
+          placeholder="ابحث عن الكب كيك، التورتة، المخبوزات، أو الشرقي..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-5 py-3 pr-11 pl-10 rounded-2xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent shadow-xs transition-all"
+        />
+        <Search className="w-4 h-4 text-rose-400 dark:text-pink-400 absolute top-3.5 right-4 pointer-events-none" />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 absolute top-2.5 left-3 flex items-center justify-center text-xs transition"
+            title="مسح البحث"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         )}
+      </div>
+
+      {/* 2-Column Responsive Layout: Vertical Sticky Sidebar (Desktop) + Products (Desktop & Mobile) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Right Column: Vertical Sticky Categories Sidebar (Desktop/Tablet) */}
+        <aside className="hidden lg:block lg:col-span-3 sticky top-28 space-y-4">
+          <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-3xl p-5 border border-rose-100 dark:border-slate-700 shadow-sm space-y-4">
+            
+            <div className="flex items-center justify-between border-b border-rose-100 dark:border-slate-700 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🍰</span>
+                <h3 className="font-black text-sm text-slate-900 dark:text-white">أقسام الحلويات</h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-slate-700 text-rose-600 dark:text-pink-400">
+                {categories.length} أقسام
+              </span>
+            </div>
+
+            {/* Vertical Categories List */}
+            <nav className="space-y-1.5" aria-label="أقسام المتجر">
+              {/* All Items Button */}
+              <button
+                type="button"
+                onClick={() => { setSelectedCategory(""); setSelectedSubcategory("ALL"); }}
+                className={`w-full px-4 py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-between group ${
+                  selectedCategory === ""
+                    ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white shadow-rose-glow scale-102"
+                    : "bg-slate-50/70 dark:bg-slate-900/60 text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700 hover:text-rose-600"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base group-hover:scale-110 transition-transform">✨</span>
+                  <span>جميع الحلويات</span>
+                </div>
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                  selectedCategory === "" ? "bg-white/20 text-white" : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                }`}>
+                  الكل
+                </span>
+              </button>
+
+              {/* Category Items */}
+              {categories.map((cat) => {
+                const icon = CATEGORY_META[cat.slug]?.icon || "🧁";
+                const isSelected = selectedCategory === cat.slug;
+                const hasSubs = CATEGORY_META[cat.slug]?.subcategories;
+
+                return (
+                  <div key={cat.id} className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedCategory(cat.slug); setSelectedSubcategory("ALL"); }}
+                      className={`w-full px-4 py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-between group ${
+                        isSelected
+                          ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white shadow-rose-glow scale-102"
+                          : "bg-slate-50/70 dark:bg-slate-900/60 text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700 hover:text-rose-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base group-hover:scale-110 transition-transform">{icon}</span>
+                        <span>{cat.nameAr}</span>
+                      </div>
+                      {isSelected && (
+                        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      )}
+                    </button>
+
+                    {/* Nested Subcategories in Sidebar */}
+                    {isSelected && hasSubs && (
+                      <div className="mr-4 pr-3 pl-1 py-1.5 border-r-2 border-rose-300 dark:border-pink-500 space-y-1 animate-in fade-in slide-in-from-right-1 duration-200">
+                        {hasSubs.map((sub) => {
+                          const isSubActive = selectedSubcategory === sub.id;
+                          return (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={() => setSelectedSubcategory(sub.id)}
+                              className={`w-full text-right px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-between ${
+                                isSubActive
+                                  ? "bg-rose-100 dark:bg-pink-950/60 text-rose-700 dark:text-pink-300 font-black"
+                                  : "text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-pink-400 hover:bg-rose-50/50"
+                              }`}
+                            >
+                              <span>{sub.nameAr}</span>
+                              {isSubActive && <Check className="w-3 h-3 text-rose-600 dark:text-pink-400" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
+
+          </div>
+        </aside>
+
+        {/* Left Column (lg:col-span-9): Mobile Category Selector + Toolbar + Filters + Products Display */}
+        <div className="lg:col-span-9 space-y-6">
+
+          {/* Mobile Category Quick Bar (< lg) */}
+          <div className="lg:hidden space-y-2.5">
+            <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-rose-100 dark:border-slate-700 shadow-xs">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <span className="text-2xl">
+                  {selectedCategory ? (CATEGORY_META[selectedCategory]?.icon || "🧁") : "✨"}
+                </span>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-bold">القسم المعروض حالياً:</span>
+                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate block">
+                    {selectedCategory ? (categories.find(c => c.slug === selectedCategory)?.nameAr || selectedCategory) : "جميع الحلويات (الكل)"}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileCategoryOpen(true)}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+              >
+                <span>تغيير القسم</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* If Selected Category has subcategories on mobile */}
+            {selectedCategory && CATEGORY_META[selectedCategory]?.subcategories && (
+              <div className="flex items-center gap-1.5 overflow-x-auto py-2 px-3 bg-rose-50/70 dark:bg-slate-800/80 rounded-2xl border border-rose-100 dark:border-slate-700 scrollbar-none no-scrollbar">
+                <span className="text-[11px] font-black text-rose-700 dark:text-pink-400 shrink-0">الأصناف:</span>
+                {CATEGORY_META[selectedCategory].subcategories.map((sub) => {
+                  const isSubActive = selectedSubcategory === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => setSelectedSubcategory(sub.id)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0 shadow-xs ${
+                        isSubActive
+                          ? "bg-rose-500 text-white font-black"
+                          : "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-rose-200 dark:border-slate-600"
+                      }`}
+                    >
+                      {sub.nameAr}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
         {/* Unified Sleek Mobile-Friendly Control Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-rose-100 dark:border-slate-800">
@@ -650,8 +737,6 @@ function ShopContent() {
             </div>
           </div>
         )}
-
-      </div>
 
       {/* Products Display (List or Grid) */}
       {loading ? (
@@ -1048,6 +1133,82 @@ function ShopContent() {
               </div>
             );
           })}
+        </div>
+      )}
+
+        </div>
+      </div>
+
+      {/* Mobile Categories Bottom Sheet Modal */}
+      {mobileCategoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 border border-rose-100 dark:border-slate-700 max-h-[85vh] flex flex-col space-y-4 animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
+            
+            <div className="flex items-center justify-between border-b border-rose-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🍰</span>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">اختر قسم الحلويات</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileCategoryOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable vertical categories list */}
+            <div className="overflow-y-auto space-y-2 py-1 max-h-[60vh] pr-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory("");
+                  setSelectedSubcategory("ALL");
+                  setMobileCategoryOpen(false);
+                }}
+                className={`w-full p-3.5 rounded-2xl text-xs font-black transition flex items-center justify-between ${
+                  selectedCategory === ""
+                    ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white shadow-rose-glow"
+                    : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">✨</span>
+                  <span className="font-black text-sm">جميع الحلويات (عرض الكل)</span>
+                </div>
+                {selectedCategory === "" && <Check className="w-4 h-4 text-white" />}
+              </button>
+
+              {categories.map((cat) => {
+                const icon = CATEGORY_META[cat.slug]?.icon || "🧁";
+                const isSelected = selectedCategory === cat.slug;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(cat.slug);
+                      setSelectedSubcategory("ALL");
+                      setMobileCategoryOpen(false);
+                    }}
+                    className={`w-full p-3.5 rounded-2xl text-xs font-black transition flex items-center justify-between ${
+                      isSelected
+                        ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white shadow-rose-glow"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{icon}</span>
+                      <span className="font-black text-sm">{cat.nameAr}</span>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-white" />}
+                  </button>
+                );
+              })}
+            </div>
+
+          </div>
         </div>
       )}
 

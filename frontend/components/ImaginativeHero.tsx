@@ -178,7 +178,7 @@ export default function ImaginativeHero() {
                       }`}
                     >
                       {item.icon && <span>{item.icon}</span>}
-                      <span>{item.label}</span>
+                      <span>{item.title || item.label}</span>
                     </button>
                   );
                 })}

@@ -15,7 +15,7 @@ export default function StoreChrome({ children }: { children: React.ReactNode })
   if (isAdminPage) {
     // Standalone Luxury Admin Portal: Matches brand palette, modern enterprise SaaS
     return (
-      <main className="flex-1 w-full min-h-screen bg-slate-50 text-slate-800 relative z-10 font-sans" dir="rtl">
+      <main className="flex-1 w-full min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 relative z-10 font-sans transition-colors duration-200" dir="rtl">
         {children}
       </main>
     );

@@ -413,6 +413,15 @@ export default function AdminDashboardPage() {
   const [uploadingSlideImage, setUploadingSlideImage] = useState(false);
   const [uploadingCakeImage, setUploadingCakeImage] = useState(false);
   const [uploadingFaviconImage, setUploadingFaviconImage] = useState(false);
+  const [uploadingSocialImage, setUploadingSocialImage] = useState(false);
+
+  // Hero Taste Highlights CRUD Modal State (USER REQUEST: التحكم الكامل بجمل سر المذاق وإضافة وحذف وتعديل وربط الشرائح)
+  const [highlightModalOpen, setHighlightModalOpen] = useState(false);
+  const [editingHighlightIdx, setEditingHighlightIdx] = useState<number | null>(null);
+  const [highlightFormTitle, setHighlightFormTitle] = useState("");
+  const [highlightFormDesc, setHighlightFormDesc] = useState("");
+  const [highlightFormIcon, setHighlightFormIcon] = useState("✨");
+  const [highlightFormSlideIndex, setHighlightFormSlideIndex] = useState(0);
 
   // Reviews Management State (USER REQUEST: التحكم الكامل في التقييمات المعروضة)
   const [reviews, setReviews] = useState<ReviewItemDto[]>([]);
@@ -2689,17 +2698,17 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Daily Delivery Reminders Dispatcher (الشيف والعملاء) */}
-          <div className="bg-gradient-to-br from-sky-50 via-white to-rose-50 p-6 sm:p-8 rounded-3xl border border-sky-200 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-100 pb-4">
+          <div className="bg-gradient-to-br from-sky-50 via-white to-rose-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 p-6 sm:p-8 rounded-3xl border border-sky-200 dark:border-slate-800 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md">
                   <Bell className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-slate-900">
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
                     مركز إرسال التذكيرات الذكية اليومية (الشيف والعملاء عبر واتساب 📲)
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     إرسال خطة تشغيل المطبخ والتجهيز اليومية للشيف، وتذكير العملاء بمواعيد استلام وتوصيل طلباتهم
                   </p>
                 </div>
@@ -2726,12 +2735,12 @@ export default function AdminDashboardPage() {
 
             {remindersData ? (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-sky-200 dark:border-slate-700 shadow-sm">
                   <div>
-                    <span className="text-xs font-black text-slate-900 block">
+                    <span className="text-xs font-black text-slate-900 dark:text-white block">
                       إجمالي الطلبات المستحقة ليوم {remindersData.targetDate}: {remindersData.totalOrdersDue} طلب
                     </span>
-                    <span className="text-[11px] text-slate-500 block">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                       جاهز لإرسال خطة التشغيل للشيف وتنبيهات الاستلام للعملاء
                     </span>
                   </div>
@@ -2757,12 +2766,12 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {remindersData.customerReminders.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic text-center py-2">لا توجد طلبات مستحقة لهذا التاريخ</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center py-2">لا توجد طلبات مستحقة لهذا التاريخ</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-right text-xs">
                       <thead>
-                        <tr className="border-b border-sky-100 text-slate-500 bg-sky-50/50">
+                        <tr className="border-b border-sky-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-sky-50/50 dark:bg-slate-800">
                           <th className="py-2.5 px-3 font-bold">رقم الطلب</th>
                           <th className="py-2.5 px-3 font-bold">اسم العميل</th>
                           <th className="py-2.5 px-3 font-bold">الهاتف</th>
@@ -2775,17 +2784,17 @@ export default function AdminDashboardPage() {
                           const cleanPhone = c.customerPhone.replace(/\D/g, "");
                           const finalPhone = cleanPhone.startsWith("01") ? "2" + cleanPhone : cleanPhone;
                           return (
-                            <tr key={c.orderId} className="hover:bg-white/80 transition">
-                              <td className="py-3 px-3 font-mono font-bold text-slate-900">#{c.publicOrderNumber}</td>
-                              <td className="py-3 px-3 font-bold text-slate-800">{c.customerName}</td>
-                              <td className="py-3 px-3 font-mono text-slate-600">{c.customerPhone}</td>
-                              <td className="py-3 px-3">{c.fulfillmentType === "DELIVERY" ? "توصيل" : "استلام فرع"} ({c.timeRange})</td>
+                            <tr key={c.orderId} className="hover:bg-white/80 dark:hover:bg-slate-800/60 transition">
+                              <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">#{c.publicOrderNumber}</td>
+                              <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200">{c.customerName}</td>
+                              <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">{c.customerPhone}</td>
+                              <td className="py-3 px-3 text-slate-700 dark:text-slate-300">{c.fulfillmentType === "DELIVERY" ? "توصيل" : "استلام فرع"} ({c.timeRange})</td>
                               <td className="py-3 px-3 text-center">
                                 <a
                                   href={`https://wa.me/${finalPhone}?text=${encodeURIComponent(c.customerWhatsAppMessage)}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold text-[11px] inline-flex items-center gap-1 transition"
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200 dark:border-emerald-800 font-bold text-[11px] inline-flex items-center gap-1 transition"
                                 >
                                   <Send className="w-3 h-3" />
                                   <span>تذكير واتساب</span>
@@ -2802,7 +2811,7 @@ export default function AdminDashboardPage() {
             ) : (
               <div className="p-6 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-dashed border-sky-200 dark:border-slate-700 text-center space-y-2">
                 <Clock className="w-8 h-8 text-sky-400 mx-auto" />
-                <p className="text-xs font-bold text-slate-700">اضغط على زر &quot;عرض تذكيرات التاريخ&quot; لاستخراج خطة التشغيل اليومية وتنبيهات العملاء</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">اضغط على زر &quot;عرض تذكيرات التاريخ&quot; لاستخراج خطة التشغيل اليومية وتنبيهات العملاء</p>
               </div>
             )}
           </div>
@@ -6420,20 +6429,20 @@ export default function AdminDashboardPage() {
       {activeTab === "SLIDERS" && (
         <div className="space-y-8 animate-in fade-in">
           {/* Hero Slides Manager */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm space-y-6">
-            <div className="border-b border-rose-100 pb-4">
-              <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="border-b border-rose-100 dark:border-slate-800 pb-4">
+              <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <SlidersHorizontal className="w-5 h-5 text-rose-500" />
                 <span>شرائح السلايدر المتحرك في الصفحة الرئيسية (Hero Carousel)</span>
               </h3>
-              <p className="text-xs text-slate-500">تتغير الصور تلقائياً كل 3.5 ثانية لجذب العميل مع إمكانية إضافة وحذف أي صورة</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">تتغير الصور تلقائياً كل 3.5 ثانية لجذب العميل مع إمكانية إضافة وحذف أي صورة</p>
             </div>
 
             {/* Current Slides */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {heroSlidesAdmin.map((slide, idx) => (
-                <div key={idx} className="relative rounded-2xl overflow-hidden border border-rose-200 bg-rose-50/20 shadow-sm flex flex-col group">
-                  <div className="h-36 relative bg-slate-100">
+                <div key={idx} className="relative rounded-2xl overflow-hidden border border-rose-200 dark:border-slate-800 bg-rose-50/20 dark:bg-slate-800/80 shadow-sm flex flex-col group">
+                  <div className="h-36 relative bg-slate-100 dark:bg-slate-900">
                     <Image src={slide.src} alt={slide.title} fill className="object-cover" />
                     <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow">
                       {slide.tag}
@@ -6441,14 +6450,14 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
                     <div>
-                      <h4 className="font-black text-xs text-slate-900 line-clamp-1">{slide.title}</h4>
-                      <p className="text-[11px] text-slate-500 line-clamp-1">{slide.sub}</p>
+                      <h4 className="font-black text-xs text-slate-900 dark:text-white line-clamp-1">{slide.title}</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">{slide.sub}</p>
                     </div>
                     <div className="flex items-center gap-1.5 pt-1">
                       <button
                         type="button"
                         onClick={() => handleStartEditHeroSlide(idx)}
-                        className="flex-1 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-sky-200 shadow-2xs"
+                        className="flex-1 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/80 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-sky-200 dark:border-sky-800 shadow-2xs"
                       >
                         <Pencil className="w-3 h-3" />
                         <span>تعديل</span>
@@ -6456,7 +6465,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteHeroSlide(idx)}
-                        className="flex-1 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-red-200 shadow-2xs"
+                        className="flex-1 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/80 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-red-200 dark:border-red-800 shadow-2xs"
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>حذف</span>
@@ -6468,13 +6477,13 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Add New Slide Form */}
-            <form onSubmit={handleAddHeroSlide} className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200 space-y-3 text-xs">
-              <h4 className="font-black text-slate-900">إضافة شريحة جديدة للسلايدر الرئيسي:</h4>
+            <form onSubmit={handleAddHeroSlide} className="p-5 rounded-2xl bg-rose-50/50 dark:bg-slate-800/80 border border-rose-200 dark:border-slate-700 space-y-3 text-xs">
+              <h4 className="font-black text-slate-900 dark:text-white">إضافة شريحة جديدة للسلايدر الرئيسي:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block mb-1">صورة الشريحة (رفع من جهازك) 🖼️ *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">صورة الشريحة (رفع من جهازك) 🖼️ *:</label>
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 font-bold text-xs text-rose-700 transition shadow-sm">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-slate-800 border border-rose-300 dark:border-slate-700 font-bold text-xs text-rose-700 dark:text-pink-400 transition shadow-sm">
                       <Upload className="w-4 h-4 text-rose-500" />
                       <span>{uploadingSlideImage ? "جاري تجهيز الصورة..." : (newSlideSrc ? "تم اختيار صورة ✓ (تغيير)" : "اختر صورة من جهازك")}</span>
                       <input
@@ -6500,7 +6509,7 @@ export default function AdminDashboardPage() {
                       />
                     </label>
                     {newSlideSrc && (
-                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-rose-300 shrink-0 bg-slate-100 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-rose-300 dark:border-slate-600 shrink-0 bg-slate-100 dark:bg-slate-900 shadow-sm">
                         <Image src={newSlideSrc} alt="معاينة" fill className="object-cover" />
                       </div>
                     )}
@@ -6509,34 +6518,34 @@ export default function AdminDashboardPage() {
                   {!newSlideSrc && <p className="text-[10px] text-rose-500 font-bold mt-1">يرجى رفع صورة الشريحة أولاً</p>}
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي للشريحة *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">العنوان الرئيسي للشريحة *:</label>
                   <input
                     type="text"
                     placeholder="مثال: تشكيلة الكب كيك الإسباني الفاخر"
                     value={newSlideTitle}
                     onChange={(e) => setNewSlideTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     required
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">شارة العرض (Badge):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">شارة العرض (Badge):</label>
                   <input
                     type="text"
                     placeholder="مثال: الأكثر طلباً ★"
                     value={newSlideTag}
                     onChange={(e) => setNewSlideTag(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">الوصف الفرعي:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">الوصف الفرعي:</label>
                   <input
                     type="text"
                     placeholder="مثال: كريمة خفيفة ومكونات طبيعية 100%"
                     value={newSlideSub}
                     onChange={(e) => setNewSlideSub(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -6555,31 +6564,31 @@ export default function AdminDashboardPage() {
 
           {/* Custom Cake Showcase Slides Manager */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-pink-100 dark:border-slate-800 shadow-sm space-y-6">
-            <div className="border-b border-pink-100 pb-4">
-              <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
+            <div className="border-b border-pink-100 dark:border-slate-800 pb-4">
+              <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <Cake className="w-5 h-5 text-pink-500" />
                 <span>شرائح معرض تورتات المناسبات في الصفحة الرئيسية (Section 5)</span>
               </h3>
-              <p className="text-xs text-slate-500">الصور التفاعلية التي تظهر في قسم تصميم التورتة المخصصة بالصفحة الرئيسية</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">الصور التفاعلية التي تظهر في قسم تصميم التورتة المخصصة بالصفحة الرئيسية</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {cakeSlidesAdmin.map((slide, idx) => (
-                <div key={idx} className="relative rounded-2xl overflow-hidden border border-pink-200 bg-pink-50/20 shadow-sm flex flex-col">
-                  <div className="h-40 relative bg-slate-100">
+                <div key={idx} className="relative rounded-2xl overflow-hidden border border-pink-200 dark:border-slate-800 bg-pink-50/20 dark:bg-slate-800/80 shadow-sm flex flex-col">
+                  <div className="h-40 relative bg-slate-100 dark:bg-slate-900">
                     <Image src={slide.src} alt={slide.title} fill className="object-cover" />
                     <span className="absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-pink-600 text-white shadow">
                       {slide.tiers}
                     </span>
                   </div>
                   <div className="p-3.5 space-y-2">
-                    <h4 className="font-black text-xs text-slate-900">{slide.title}</h4>
-                    <p className="text-[11px] text-slate-500">{slide.flavor}</p>
+                    <h4 className="font-black text-xs text-slate-900 dark:text-white">{slide.title}</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{slide.flavor}</p>
                     <div className="flex items-center gap-1.5 pt-1">
                       <button
                         type="button"
                         onClick={() => handleStartEditCakeSlide(idx)}
-                        className="flex-1 py-1.5 rounded-xl bg-pink-50 text-pink-700 hover:bg-pink-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-pink-200 shadow-2xs"
+                        className="flex-1 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/80 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-pink-200 dark:border-pink-800 shadow-2xs"
                       >
                         <Pencil className="w-3 h-3" />
                         <span>تعديل</span>
@@ -6587,7 +6596,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteCakeSlide(idx)}
-                        className="flex-1 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-red-200 shadow-2xs"
+                        className="flex-1 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/80 text-[11px] font-bold transition flex items-center justify-center gap-1 border border-red-200 dark:border-red-800 shadow-2xs"
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>حذف</span>
@@ -6598,13 +6607,13 @@ export default function AdminDashboardPage() {
               ))}
             </div>
 
-            <form onSubmit={handleAddCakeSlide} className="p-5 rounded-2xl bg-pink-50/40 border border-pink-200 space-y-3 text-xs">
-              <h4 className="font-black text-slate-900">إضافة تورتة جديدة لمعرض الصفحة الرئيسية:</h4>
+            <form onSubmit={handleAddCakeSlide} className="p-5 rounded-2xl bg-pink-50/40 dark:bg-slate-800/80 border border-pink-200 dark:border-slate-700 space-y-3 text-xs">
+              <h4 className="font-black text-slate-900 dark:text-white">إضافة تورتة جديدة لمعرض الصفحة الرئيسية:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block mb-1">صورة التورتة (رفع من جهازك) 🎂 *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">صورة التورتة (رفع من جهازك) 🎂 *:</label>
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white hover:bg-pink-50 border border-pink-300 font-bold text-xs text-pink-700 transition shadow-sm">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-pink-50 dark:hover:bg-slate-800 border border-pink-300 dark:border-slate-700 font-bold text-xs text-pink-700 dark:text-pink-400 transition shadow-sm">
                       <Upload className="w-4 h-4 text-pink-500" />
                       <span>{uploadingCakeImage ? "جاري تجهيز الصورة..." : (newCakeSrc ? "تم اختيار تورتة ✓ (تغيير)" : "اختر صورة من جهازك")}</span>
                       <input
@@ -6630,7 +6639,7 @@ export default function AdminDashboardPage() {
                       />
                     </label>
                     {newCakeSrc && (
-                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-pink-300 shrink-0 bg-slate-100 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-pink-300 dark:border-slate-600 shrink-0 bg-slate-100 dark:bg-slate-900 shadow-sm">
                         <Image src={newCakeSrc} alt="معاينة" fill className="object-cover" />
                       </div>
                     )}
@@ -6639,34 +6648,34 @@ export default function AdminDashboardPage() {
                   {!newCakeSrc && <p className="text-[10px] text-pink-500 font-bold mt-1">يرجى رفع صورة التورتة أولاً</p>}
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">عنوان التورتة *:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">عنوان التورتة *:</label>
                   <input
                     type="text"
                     placeholder="مثال: تورتة زفاف ملكية"
                     value={newCakeTitle}
                     onChange={(e) => setNewCakeTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     required
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">النكهة والحشوة:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">النكهة والحشوة:</label>
                   <input
                     type="text"
                     placeholder="شوكولاتة بلجيكية وتوت بري"
                     value={newCakeFlavor}
                     onChange={(e) => setNewCakeFlavor(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">عدد الأدوار / الفئة:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">عدد الأدوار / الفئة:</label>
                   <input
                     type="text"
                     placeholder="3 أدوار فاخرة"
                     value={newCakeTiers}
                     onChange={(e) => setNewCakeTiers(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -6914,54 +6923,54 @@ export default function AdminDashboardPage() {
       {/* Tab: Loyalty Program Rules (USER REQUEST) */}
       {activeTab === "LOYALTY" && (
         <div className="space-y-6 animate-in fade-in max-w-4xl">
-          <div className="bg-gradient-to-br from-amber-50/50 via-white to-amber-50/30 p-6 sm:p-8 rounded-3xl border border-amber-200 shadow-sm space-y-6">
-            <div className="border-b border-amber-100 pb-4 flex items-center gap-3">
+          <div className="bg-gradient-to-br from-amber-50/50 via-white to-amber-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 p-6 sm:p-8 rounded-3xl border border-amber-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="border-b border-amber-100 dark:border-slate-800 pb-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md">
                 <Coins className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-lg text-slate-900">نظام وقواعد برنامج مكافآت ونقاط الولاء (VIP Loyalty)</h3>
-                <p className="text-xs text-slate-500">تحكم بقيمة النقاط المكتسبة ومعدل الاستبدال لخصومات المشتريات القادمة</p>
+                <h3 className="font-black text-lg text-slate-900 dark:text-white">نظام وقواعد برنامج مكافآت ونقاط الولاء (VIP Loyalty)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">تحكم بقيمة النقاط المكتسبة ومعدل الاستبدال لخصومات المشتريات القادمة</p>
               </div>
             </div>
 
             <form onSubmit={handleSaveLoyalty} className="space-y-6 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/40 shadow-sm space-y-2">
-                  <span className="font-black text-slate-800 text-sm block">معدل اكتساب النقاط (Earning Rate)</span>
-                  <p className="text-[11px] text-slate-500">كم جنيه يتم إنفاقه ليكسب العميل نقطة ولاء واحدة؟</p>
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 shadow-sm space-y-2">
+                  <span className="font-black text-slate-800 dark:text-white text-sm block">معدل اكتساب النقاط (Earning Rate)</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">كم جنيه يتم إنفاقه ليكسب العميل نقطة ولاء واحدة؟</p>
                   <div className="flex items-center gap-2 pt-2">
-                    <span className="font-bold text-slate-600">نقطة 1 لكل:</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-300">نقطة 1 لكل:</span>
                     <input
                       type="number"
                       min="1"
                       value={loyaltyPointsPerEgp}
                       onChange={(e) => setLoyaltyPointsPerEgp(e.target.value)}
-                      className="w-24 px-3 py-2 rounded-xl border border-amber-300 font-black text-center text-sm"
+                      className="w-24 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-700/60 font-black text-center text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
-                    <span className="font-bold text-slate-600">جنيه مصري</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-300">جنيه مصري</span>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/40 shadow-sm space-y-2">
-                  <span className="font-black text-slate-800 text-sm block">قيمة استبدال النقطة (Redemption Value)</span>
-                  <p className="text-[11px] text-slate-500">القيمة المادية للنقطة الواحدة بالجنيه عند الخصم من الفاتورة:</p>
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 shadow-sm space-y-2">
+                  <span className="font-black text-slate-800 dark:text-white text-sm block">قيمة استبدال النقطة (Redemption Value)</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">القيمة المادية للنقطة الواحدة بالجنيه عند الخصم من الفاتورة:</p>
                   <div className="flex items-center gap-2 pt-2">
-                    <span className="font-bold text-slate-600">النقطة =</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-300">النقطة =</span>
                     <input
                       type="number"
                       step="0.01"
                       min="0.01"
                       value={loyaltyEgpPerPoint}
                       onChange={(e) => setLoyaltyEgpPerPoint(e.target.value)}
-                      className="w-24 px-3 py-2 rounded-xl border border-amber-300 font-black text-center text-sm"
+                      className="w-24 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-700/60 font-black text-center text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
-                    <span className="font-bold text-slate-600">جنيه مصري خصم</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-300">جنيه مصري خصم</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 text-[11px] leading-relaxed">
                 💡 <strong>مثال عملي:</strong> عندما ينفق العميل 500 جنيه، يحصل على 50 نقطة. عند استبدالها بمعدل 0.05 جنيه/نقطة، يحصل العميل على خصم فوري قيمته 2.50 جنيه، أو 500 نقطة = 25 جنيه خصم.
               </div>
 
@@ -6999,23 +7008,23 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Dedicated Logo Customization Card (USER REQUEST) */}
-          <div className="bg-gradient-to-br from-rose-50 via-white to-pink-50/40 p-6 sm:p-8 rounded-3xl border border-rose-200 shadow-sm space-y-6">
+          <div className="bg-gradient-to-br from-rose-50 via-white to-pink-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-6 sm:p-8 rounded-3xl border border-rose-200 dark:border-slate-800 shadow-sm space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-rose-glow">
                 <Camera className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-black text-lg text-slate-900">شعار المتجر (Store Logo)</h4>
-                <p className="text-xs text-slate-500">رفع صورة الشعار مباشرة من جهازك (كمبيوتر أو موبايل) بدون الحاجة لأي روابط</p>
+                <h4 className="font-black text-lg text-slate-900 dark:text-white">شعار المتجر (Store Logo)</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">رفع صورة الشعار مباشرة من جهازك (كمبيوتر أو موبايل) بدون الحاجة لأي روابط</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
               {/* Preview Box */}
-              <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-rose-300 dark:border-slate-700 text-center space-y-3">
-                <span className="text-[11px] font-bold text-slate-400 block">معاينة الشعار المعتمد</span>
+              <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-950 rounded-2xl border-2 border-dashed border-rose-300 dark:border-slate-800 text-center space-y-3">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block">معاينة الشعار المعتمد</span>
                 {currentLogo ? (
-                  <div className="w-28 h-28 rounded-2xl overflow-hidden relative border border-rose-200 shadow-sm bg-white p-2">
+                  <div className="w-28 h-28 rounded-2xl overflow-hidden relative border border-rose-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-900 p-2">
                     <Image
                       src={currentLogo}
                       alt="لوجو المتجر"
@@ -7024,26 +7033,26 @@ export default function AdminDashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="w-28 h-28 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-500 font-black text-2xl">
+                  <div className="w-28 h-28 rounded-2xl bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-500 dark:text-rose-400 font-black text-2xl">
                     LC
                   </div>
                 )}
-                <span className="text-xs font-black text-slate-800">شعار لولو كب كيك الحالي</span>
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200">شعار لولو كب كيك الحالي</span>
               </div>
 
               {/* Upload Controls */}
               <div className="md:col-span-2 space-y-4">
                 <div>
-                  <label className="text-xs font-black text-slate-800 block mb-2">
+                  <label className="text-xs font-black text-slate-800 dark:text-slate-200 block mb-2">
                     رفع وتحديث صورة الشعار من جهازك (PNG / JPG / WEBP) 📸:
                   </label>
-                  <label className="flex flex-col sm:flex-row items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-rose-400 bg-white hover:bg-rose-50/70 cursor-pointer transition shadow-sm text-center sm:text-right group">
-                    <div className="w-14 h-14 rounded-2xl bg-rose-100 group-hover:bg-rose-200 flex items-center justify-center transition shrink-0">
-                      <Upload className="w-7 h-7 text-rose-600" />
+                  <label className="flex flex-col sm:flex-row items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-rose-400 dark:border-rose-900/50 bg-white dark:bg-slate-950 hover:bg-rose-50/70 dark:hover:bg-slate-900 cursor-pointer transition shadow-sm text-center sm:text-right group">
+                    <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-950/60 group-hover:bg-rose-200 dark:group-hover:bg-rose-900/60 flex items-center justify-center transition shrink-0">
+                      <Upload className="w-7 h-7 text-rose-600 dark:text-rose-400" />
                     </div>
                     <div>
-                      <span className="block font-black text-sm text-rose-600">اضغط هنا لاختيار صورة اللوجو من جهازك</span>
-                      <span className="text-[11px] text-slate-500 mt-0.5 block">يتم ضغط الصورة وتحديثها تلقائياً وتعميمها فوراً على كل الزوار وقاعدة البيانات</span>
+                      <span className="block font-black text-sm text-rose-600 dark:text-rose-400">اضغط هنا لاختيار صورة اللوجو من جهازك</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 block">يتم ضغط الصورة وتحديثها تلقائياً وتعميمها فوراً على كل الزوار وقاعدة البيانات</span>
                     </div>
                     <input
                       type="file"
@@ -7054,8 +7063,8 @@ export default function AdminDashboardPage() {
                   </label>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-[11px] text-slate-700 leading-relaxed flex items-center gap-2.5">
-                  <span className="text-rose-500 text-base">✨</span>
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/30 text-[11px] text-slate-700 dark:text-rose-200 leading-relaxed flex items-center gap-2.5">
+                  <span className="text-rose-500 dark:text-rose-400 text-base">✨</span>
                   <span><strong>تحديث فوري ولحظي:</strong> بمجرد اختيار الملف يتم ضبط وتعديل الشعار في الهيدر والموبايل وقاعدة البيانات بدون الحاجة لكتابة أي رابط يدوي.</span>
                 </div>
               </div>
@@ -7063,15 +7072,15 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Hero & Promo Banner & Minimum Order Customization (USER REQUEST: التحكم الكامل بالهيرو والبوستات والحد الأدنى) */}
-          <div className="bg-gradient-to-br from-purple-50/50 via-white to-pink-50/50 p-6 sm:p-8 rounded-3xl border border-purple-200 shadow-sm space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-purple-100 pb-4">
+          <div className="bg-gradient-to-br from-purple-50/50 via-white to-pink-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-6 sm:p-8 rounded-3xl border border-purple-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-purple-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-600 text-white flex items-center justify-center shadow-md">
                   <SlidersHorizontal className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-black text-lg text-slate-900">تخصيص الواجهة الرئيسية والحد الأدنى للطلب (Hero & Banner)</h4>
-                  <p className="text-xs text-slate-500">تحكم كامل بالبوست الأول (الهيرو)، البانر الترويجي، والحد الأدنى للطلب للشراء الفوري والسلة</p>
+                  <h4 className="font-black text-lg text-slate-900 dark:text-white">تخصيص الواجهة الرئيسية والحد الأدنى للطلب (Hero & Banner)</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">تحكم كامل بالبوست الأول (الهيرو)، البانر الترويجي، والحد الأدنى للطلب للشراء الفوري والسلة</p>
                 </div>
               </div>
             </div>
@@ -7080,12 +7089,12 @@ export default function AdminDashboardPage() {
               {/* Left Column: Minimum Order & Promo Banner */}
               <div className="space-y-4">
                 {/* Min Order Amount */}
-                <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2">
+                <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="font-black text-xs text-amber-900">الحد الأدنى للطلب (Minimum Order Charge) 💰:</label>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">إلزامي للمشتريات</span>
+                    <label className="font-black text-xs text-amber-900 dark:text-amber-300">الحد الأدنى للطلب (Minimum Order Charge) 💰:</label>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">إلزامي للمشتريات</span>
                   </div>
-                  <p className="text-[11px] text-amber-800/80">
+                  <p className="text-[11px] text-amber-800/80 dark:text-amber-200/70">
                     أقل مبلغ يمكن للعميل الدفع والطلب به (مثال: 150 ج.م). أي منتج أقل من هذا المبلغ لن تظهر فيه أزرار الشراء الفوري حتى تكتمل السلة.
                   </p>
                   <div className="flex items-center gap-2">
@@ -7096,9 +7105,9 @@ export default function AdminDashboardPage() {
                       placeholder="150"
                       value={editingSettings["min_order_amount"] ?? (settings.find((s) => s.key === "min_order_amount")?.value || "150")}
                       onChange={(e) => setEditingSettings({ ...editingSettings, min_order_amount: e.target.value })}
-                      className="w-36 px-3 py-2 rounded-xl border border-amber-300 font-black text-sm text-amber-900 bg-white"
+                      className="w-36 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-800 font-black text-sm text-amber-900 dark:text-amber-100 bg-white dark:bg-slate-950"
                     />
-                    <span className="font-bold text-xs text-amber-900">ج.م</span>
+                    <span className="font-bold text-xs text-amber-900 dark:text-amber-300">ج.م</span>
                     <button
                       type="button"
                       disabled={savingSettingKey === "min_order_amount"}
@@ -7111,9 +7120,9 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Promo Banner Active Toggle & Text */}
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900/50 space-y-3">
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-purple-200 dark:border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="font-black text-xs text-purple-900">الشريط الإعلاني العلوي (Top Promo Banner) 📢:</label>
+                    <label className="font-black text-xs text-purple-900 dark:text-purple-300">الشريط الإعلاني العلوي (Top Promo Banner) 📢:</label>
                     <button
                       type="button"
                       onClick={() => {
@@ -7123,8 +7132,8 @@ export default function AdminDashboardPage() {
                       }}
                       className={`px-3 py-1 rounded-full text-xs font-black transition flex items-center gap-1.5 ${
                         (editingSettings["promo_banner_active"] ?? settings.find((s) => s.key === "promo_banner_active")?.value) === "true"
-                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                          : "bg-slate-100 text-slate-500 border border-slate-300"
+                          ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700"
                       }`}
                     >
                       {(editingSettings["promo_banner_active"] ?? settings.find((s) => s.key === "promo_banner_active")?.value) === "true" ? "مفعل 🟢" : "معطل ⚪"}
@@ -7136,7 +7145,7 @@ export default function AdminDashboardPage() {
                       placeholder="خصم 15% على جميع التورتات والبوكسات اليوم بكود SWEET15 ✨"
                       value={editingSettings["promo_banner_text"] ?? (settings.find((s) => s.key === "promo_banner_text")?.value || "")}
                       onChange={(e) => setEditingSettings({ ...editingSettings, promo_banner_text: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-xl border border-purple-200 text-xs font-bold"
+                      className="w-full px-3.5 py-2 rounded-xl border border-purple-200 dark:border-slate-700 text-xs font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="flex justify-end gap-2">
@@ -7156,61 +7165,61 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Right Column: Hero Post Details */}
-              <div className="space-y-3 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900/50">
-                <h5 className="font-black text-xs text-purple-950 flex items-center gap-1.5">
+              <div className="space-y-3 p-4 rounded-2xl bg-white dark:bg-slate-950 border border-purple-200 dark:border-slate-800">
+                <h5 className="font-black text-xs text-purple-950 dark:text-purple-300 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-purple-600" />
                   <span>محتوى البوست الأول (Hero Post) بالصفحة الرئيسية</span>
                 </h5>
 
                 <div>
-                  <label className="font-bold text-[11px] text-slate-600 block mb-1">الشارة الترويجية (Badge):</label>
+                  <label className="font-bold text-[11px] text-slate-600 dark:text-slate-400 block mb-1">الشارة الترويجية (Badge):</label>
                   <input
                     type="text"
                     placeholder="أشهى المخبوزات والحلويات الطازجة"
                     value={editingSettings["hero_badge"] ?? (settings.find((s) => s.key === "hero_badge")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, hero_badge: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 text-xs"
+                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-[11px] text-slate-600 block mb-1">العنوان الرئيسي (Title) *:</label>
+                  <label className="font-bold text-[11px] text-slate-600 dark:text-slate-400 block mb-1">العنوان الرئيسي (Title) *:</label>
                   <input
                     type="text"
                     placeholder="لحظاتك السعيدة تبدأ بقطعة سكر فاخرة"
                     value={editingSettings["hero_title"] ?? (settings.find((s) => s.key === "hero_title")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, hero_title: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 text-xs font-bold"
+                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-[11px] text-slate-600 block mb-1">النص التوضيحي (Subtitle):</label>
+                  <label className="font-bold text-[11px] text-slate-600 dark:text-slate-400 block mb-1">النص التوضيحي (Subtitle):</label>
                   <textarea
                     rows={2}
                     placeholder="نصنع كل قطعة كب كيك وحلوى شرقية بحب..."
                     value={editingSettings["hero_subtitle"] ?? (settings.find((s) => s.key === "hero_subtitle")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, hero_subtitle: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 text-xs"
+                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-[11px] text-slate-600 block mb-1">نص زر الشراء الرئيسي (CTA Button):</label>
+                  <label className="font-bold text-[11px] text-slate-600 dark:text-slate-400 block mb-1">نص زر الشراء الرئيسي (CTA Button):</label>
                   <input
                     type="text"
                     placeholder="استكشف تشكيلة اليوم الطازجة 🎂"
                     value={editingSettings["hero_cta_text"] ?? (settings.find((s) => s.key === "hero_cta_text")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, hero_cta_text: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 text-xs"
+                    className="w-full px-3 py-1.5 rounded-xl border border-purple-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
                 {/* Hero Image with Direct File Upload */}
                 <div className="space-y-1.5">
-                  <label className="font-bold text-[11px] text-slate-700 block">صورة البوست الرئيسي (رفع من جهازك) 🖼️:</label>
+                  <label className="font-bold text-[11px] text-slate-700 dark:text-slate-300 block">صورة البوست الرئيسي (رفع من جهازك) 🖼️:</label>
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold text-xs transition shadow-sm">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border border-purple-200 dark:border-purple-800 font-bold text-xs transition shadow-sm">
                       <Upload className="w-3.5 h-3.5" />
                       <span>{uploadingHeroImage ? "جاري المعالجة..." : "اختر صورة البوست من جهازك 📁"}</span>
                       <input
@@ -7236,7 +7245,7 @@ export default function AdminDashboardPage() {
                       />
                     </label>
                     {(editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value) && (
-                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-purple-200 shrink-0 bg-slate-100 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden relative border border-purple-200 dark:border-purple-800 shrink-0 bg-slate-100 dark:bg-slate-800 shadow-sm">
                         <Image
                           src={(editingSettings["hero_image_url"] ?? settings.find((s) => s.key === "hero_image_url")?.value) || ""}
                           alt="معاينة الهيرو"
@@ -7269,72 +7278,72 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Post 2 Customization Card (USER REQUEST: التحكم الكامل بالبوست الثاني - ورشة التورتات 3D Section 5) */}
-          <div className="bg-gradient-to-br from-pink-50/50 via-white to-rose-50/50 p-6 sm:p-8 rounded-3xl border border-pink-200 shadow-sm space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-pink-100 pb-4">
+          <div className="bg-gradient-to-br from-pink-50/50 via-white to-rose-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-6 sm:p-8 rounded-3xl border border-pink-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-pink-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-600 to-rose-600 text-white flex items-center justify-center shadow-md">
                   <Cake className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-black text-lg text-slate-900">تخصيص البوست الثاني (ورشة التورتات الخاصة ثلاثية الأبعاد 3D - Section 5)</h4>
-                  <p className="text-xs text-slate-500">تحكم كامل بنصوص وعناوين وأزرار القسم التفاعلي لتفصيل التورتات في الصفحة الرئيسية</p>
+                  <h4 className="font-black text-lg text-slate-900 dark:text-white">تخصيص البوست الثاني (ورشة التورتات الخاصة ثلاثية الأبعاد 3D - Section 5)</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">تحكم كامل بنصوص وعناوين وأزرار القسم التفاعلي لتفصيل التورتات في الصفحة الرئيسية</p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">شارة القسم (Badge):</label>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">شارة القسم (Badge):</label>
                 <input
                   type="text"
                   placeholder="ورشة تفصيل وتصميم التورتات الخاصة 🎂"
                   value={editingSettings["custom_cake_badge"] ?? (settings.find((s) => s.key === "custom_cake_badge")?.value || "ورشة تفصيل وتصميم التورتات الخاصة 🎂")}
                   onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_badge: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">نص الزر الأساسي (Primary CTA):</label>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">نص الزر الأساسي (Primary CTA):</label>
                 <input
                   type="text"
                   placeholder="صمم واطلب تسعير تورتتك الخاصة 3D"
                   value={editingSettings["custom_cake_cta_primary"] ?? (settings.find((s) => s.key === "custom_cake_cta_primary")?.value || "صمم واطلب تسعير تورتتك الخاصة 3D")}
                   onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_cta_primary: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold text-pink-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold text-pink-600 dark:text-pink-400"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي للبوست الثاني (Title) *:</label>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">العنوان الرئيسي للبوست الثاني (Title) *:</label>
                 <input
                   type="text"
                   placeholder="هل لديك فكرة أو تصميم مميز؟ سنحولها لتورتة أحلامك ثلاثية الأبعاد"
                   value={editingSettings["custom_cake_title"] ?? (settings.find((s) => s.key === "custom_cake_title")?.value || "هل لديك فكرة أو تصميم مميز؟ سنحولها لتورتة أحلامك ثلاثية الأبعاد")}
                   onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold text-slate-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-pink-400 font-bold text-slate-900 dark:text-white"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="font-bold text-slate-700 block mb-1">النص الوصفي التوضيحي (Subtitle):</label>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">النص الوصفي التوضيحي (Subtitle):</label>
                 <textarea
                   rows={2}
                   placeholder="شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك..."
                   value={editingSettings["custom_cake_subtitle"] ?? (settings.find((s) => s.key === "custom_cake_subtitle")?.value || "شاركنا تفاصيل مناسبتك، حجم التورتة وعدد الأدوار، النكهات المفضلة، وصورة التصميم الذي يعجبك. سيقوم شيف لولو كب كيك بمراجعة فكرتك وإرسال عرض سعر فني دقيق خلال وقت قياسي.")}
                   onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_subtitle: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none font-medium"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">نص الزر الثانوي (Secondary CTA):</label>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">نص الزر الثانوي (Secondary CTA):</label>
                 <input
                   type="text"
                   placeholder="متابعة عرض سعر سابق"
                   value={editingSettings["custom_cake_cta_secondary"] ?? (settings.find((s) => s.key === "custom_cake_cta_secondary")?.value || "متابعة عرض سعر سابق")}
                   onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_cta_secondary: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-medium"
                 />
               </div>
 
@@ -7363,17 +7372,17 @@ export default function AdminDashboardPage() {
             
             {/* Box: Inactive Product Badge & Custom Cake Price Note */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2 border-b border-rose-100 dark:border-slate-800 pb-3">
                 <Sparkles className="w-5 h-5 text-rose-500" />
-                <h4 className="font-black text-sm text-slate-900">نصوص التوفر والسعر التقديري للتورتة</h4>
+                <h4 className="font-black text-sm text-slate-900 dark:text-white">نصوص التوفر والسعر التقديري للتورتة</h4>
               </div>
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     عبارة المنتج المعطل بالمتجر (Inactive Product Badge) 🕒:
                   </label>
-                  <p className="text-[11px] text-slate-400 mb-1.5">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
                     الكلمة التي تظهر على المنتجات المعطلة في المتجر وصفحة المنتج (مثال: سيتوفر قريباً ✨ أو غير متوفر حالياً)
                   </p>
                   <div className="flex items-center gap-2">
@@ -7382,24 +7391,24 @@ export default function AdminDashboardPage() {
                       placeholder="سيتوفر قريباً ✨"
                       value={editingSettings["inactive_product_badge_text"] ?? (settings.find((s) => s.key === "inactive_product_badge_text")?.value || "سيتوفر قريباً ✨")}
                       onChange={(e) => setEditingSettings({ ...editingSettings, inactive_product_badge_text: e.target.value })}
-                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 font-bold"
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
                     />
                     <button
                       type="button"
                       disabled={savingSettingKey === "inactive_product_badge_text"}
                       onClick={() => handleSaveSetting("inactive_product_badge_text")}
-                      className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                      className="px-4 py-2 bg-slate-900 dark:bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-rose-700 transition"
                     >
                       {savingSettingKey === "inactive_product_badge_text" ? "جاري..." : "حفظ"}
                     </button>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-rose-50">
-                  <label className="font-bold text-slate-700 block mb-1">
+                <div className="pt-2 border-t border-rose-50 dark:border-slate-800">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     السعر المبدئي الأساسي للتورتة (ج.م) 💰:
                   </label>
-                  <p className="text-[11px] text-slate-400 mb-1.5">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
                     السعر الافتراضي الذي تبدأ منه حاسبة أسعار التورتة المخصصة بالورشة (مثال: 650 ج.م)
                   </p>
                   <div className="flex items-center gap-2">
@@ -7410,25 +7419,25 @@ export default function AdminDashboardPage() {
                       placeholder="650"
                       value={editingSettings["custom_cake_base_price"] ?? (settings.find((s) => s.key === "custom_cake_base_price")?.value || "650")}
                       onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_base_price: e.target.value })}
-                      className="w-36 px-3.5 py-2 rounded-xl border border-rose-200 font-bold text-xs"
+                      className="w-36 px-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold text-xs"
                     />
-                    <span className="text-xs font-bold text-slate-600">ج.م</span>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">ج.م</span>
                     <button
                       type="button"
                       disabled={savingSettingKey === "custom_cake_base_price"}
                       onClick={() => handleSaveSetting("custom_cake_base_price")}
-                      className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                      className="px-4 py-2 bg-slate-900 dark:bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-rose-700 transition"
                     >
                       {savingSettingKey === "custom_cake_base_price" ? "جاري..." : "حفظ السعر"}
                     </button>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-rose-50">
-                  <label className="font-bold text-slate-700 block mb-1">
+                <div className="pt-2 border-t border-rose-50 dark:border-slate-800">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     جملة وملاحظة السعر التقديري للتورتة المخصصة 🎂:
                   </label>
-                  <p className="text-[11px] text-slate-400 mb-1.5">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
                     النص التوضيحي الذي يظهر تحت السعر المبدئي في ورشة تفصيل التورتة 3D
                   </p>
                   <div className="flex items-center gap-2">
@@ -7437,13 +7446,13 @@ export default function AdminDashboardPage() {
                       placeholder="* السعر التقديري يشمل التصميم المختار، ويتم إرسال العرض المعتمد فور مراجعة الشيف لدرجة تعقيد التنفيذ."
                       value={editingSettings["custom_cake_price_note"] ?? (settings.find((s) => s.key === "custom_cake_price_note")?.value || "* السعر التقديري يشمل التصميم المختار، ويتم إرسال العرض المعتمد فور مراجعة الشيف لدرجة تعقيد التنفيذ.")}
                       onChange={(e) => setEditingSettings({ ...editingSettings, custom_cake_price_note: e.target.value })}
-                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 font-medium text-[11px]"
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium text-[11px]"
                     />
                     <button
                       type="button"
                       disabled={savingSettingKey === "custom_cake_price_note"}
                       onClick={() => handleSaveSetting("custom_cake_price_note")}
-                      className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
+                      className="px-4 py-2 bg-slate-900 dark:bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-rose-700 transition"
                     >
                       {savingSettingKey === "custom_cake_price_note" ? "جاري..." : "حفظ"}
                     </button>
@@ -7454,15 +7463,15 @@ export default function AdminDashboardPage() {
 
             {/* Box: Custom Cake Flavors Editor */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+              <div className="flex items-center justify-between border-b border-rose-100 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Cake className="w-5 h-5 text-rose-500" />
-                  <h4 className="font-black text-sm text-slate-900">نكهات وحشوات التورتة المتاحة للطلب</h4>
+                  <h4 className="font-black text-sm text-slate-900 dark:text-white">نكهات وحشوات التورتة المتاحة للطلب</h4>
                 </div>
               </div>
 
               <div className="space-y-3 text-xs">
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   النكهات التي تظهر في قائمة اختيار النكهة بصفحة تفصيل التورتة (يضاف إليها خيار &quot;أخرى&quot; تلقائياً للعميل لكتابة نكهته الخاصة):
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -7478,7 +7487,7 @@ export default function AdminDashboardPage() {
                       flvs = ["شوكولاتة نوتيلا فاخرة", "ريد فيلفيت مع كريمة الجبن", "فانيليا مدغشقر مع توت بري", "فستق حلبي مع مستكة", "لوتس كراميل مقرمش"];
                     }
                     return flvs.map((flv, idx) => (
-                      <span key={idx} className="px-3 py-1.5 rounded-xl bg-pink-50 text-pink-700 border border-pink-200 font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs">
+                      <span key={idx} className="px-3 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-900/50 font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs">
                         <span>{flv}</span>
                         <button
                           type="button"
@@ -7505,7 +7514,7 @@ export default function AdminDashboardPage() {
                     type="text"
                     id="new-cake-flavor-input"
                     placeholder="اكتب اسم نكهة جديدة (مثال: مانجو فريش وكريمة)..."
-                    className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 text-xs font-bold"
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold"
                     onKeyDown={async (e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -7554,19 +7563,34 @@ export default function AdminDashboardPage() {
 
           </div>
 
-          {/* Dedicated Taste Highlights Manager (USER REQUEST: التحكم بجمل سر مذاقنا الطبيعي وربطها بالشرائح) */}
+          {/* Dedicated Taste Highlights Manager (USER REQUEST: التحكم الكامل بجمل سر مذاقنا الطبيعي وإضافة وحذف وتعديل وربطها بالشرائح) */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+            <div className="flex items-center justify-between border-b border-rose-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500" />
-                <h4 className="font-black text-sm text-slate-900">
-                  كلمات وجمل &quot;سر مذاقنا الطبيعي 100%&quot; وربطها التفاعلي بشرائح السلايدر
+                <h4 className="font-black text-sm text-slate-900 dark:text-white">
+                  كلمات وجمل &quot;سر مذاقنا الطبيعي 100%&quot; بالهيرو وربطها التفاعلي بالسلايدر
                 </h4>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingHighlightIdx(null);
+                  setHighlightFormTitle("");
+                  setHighlightFormDesc("");
+                  setHighlightFormIcon("✨");
+                  setHighlightFormSlideIndex(0);
+                  setHighlightModalOpen(true);
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-white font-black text-xs hover:brightness-105 transition shadow-xs flex items-center gap-1.5"
+              >
+                <span>➕</span>
+                <span>إضافة ميزة سر مذاق جديدة</span>
+              </button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              عند ضغط العميل على أي كلمة في الهيرو بالصفحة الرئيسية ينتقل السلايدر فورياً للشريحة المرتبطة بها (0 تعني الشريحة الأولى، 1 الثانية، وهكذا):
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              عند ضغط العميل على أي كلمة في الهيرو بالصفحة الرئيسية ينتقل السلايدر فورياً للشريحة المرتبطة بها (يمكنك إضافة أو تعديل أو حذف الجمل بحرية كاملة):
             </p>
 
             <div className="space-y-3">
@@ -7595,20 +7619,20 @@ export default function AdminDashboardPage() {
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     {chips.map((chip, cIdx) => (
-                      <div key={cIdx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div key={cIdx} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="font-black text-slate-800 text-xs flex items-center gap-1.5">
-                            <span>{chip.icon || "✨"}</span>
+                          <span className="font-black text-slate-800 dark:text-white text-xs flex items-center gap-1.5">
+                            <span className="text-base">{chip.icon || "✨"}</span>
                             <span>{chip.title}</span>
                           </span>
-                          <span className="px-2 py-0.5 rounded-lg bg-sky-100 text-sky-800 font-bold text-[10px]">
-                            مرتبط بالشريحة رقم #{chip.slideIndex + 1}
+                          <span className="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 font-bold text-[10px]">
+                            مرتبط بالشريحة #{chip.slideIndex + 1}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500">{chip.desc}</p>
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-200">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{chip.desc}</p>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800 flex-wrap gap-2">
                           <div className="flex items-center gap-1.5 text-[11px]">
-                            <label className="text-slate-500 font-bold">تغيير الشريحة:</label>
+                            <label className="text-slate-500 dark:text-slate-400 font-bold">تغيير الشريحة:</label>
                             <select
                               value={chip.slideIndex}
                               onChange={async (e) => {
@@ -7620,7 +7644,7 @@ export default function AdminDashboardPage() {
                                 broadcastSettingsChange();
                                 showToast("تم تحديث ربط الشريحة بنجاح! ✨");
                               }}
-                              className="px-2 py-1 rounded-lg border border-slate-300 bg-white font-bold text-xs"
+                              className="px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-xs"
                             >
                               {heroSlidesAdmin.map((_, hIdx) => (
                                 <option key={hIdx} value={hIdx}>
@@ -7629,19 +7653,35 @@ export default function AdminDashboardPage() {
                               ))}
                             </select>
                           </div>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const updated = chips.filter((_, i) => i !== cIdx);
-                              setEditingSettings((prev) => ({ ...prev, hero_taste_highlights: JSON.stringify(updated) }));
-                              await updateStoreSetting("hero_taste_highlights", JSON.stringify(updated));
-                              broadcastSettingsChange();
-                              showToast("تم حذف الجملة بنجاح 🗑️");
-                            }}
-                            className="text-red-500 hover:text-red-700 font-bold text-[11px]"
-                          >
-                            حذف 🗑️
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingHighlightIdx(cIdx);
+                                setHighlightFormTitle(chip.title);
+                                setHighlightFormDesc(chip.desc);
+                                setHighlightFormIcon(chip.icon || "✨");
+                                setHighlightFormSlideIndex(chip.slideIndex || 0);
+                                setHighlightModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold text-[11px] hover:bg-amber-100 transition"
+                            >
+                              ✏️ تعديل
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const updated = chips.filter((_, i) => i !== cIdx);
+                                setEditingSettings((prev) => ({ ...prev, hero_taste_highlights: JSON.stringify(updated) }));
+                                await updateStoreSetting("hero_taste_highlights", JSON.stringify(updated));
+                                broadcastSettingsChange();
+                                showToast("تم حذف الجملة بنجاح 🗑️");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 font-bold text-[11px] hover:bg-red-100 transition"
+                            >
+                              🗑️ حذف
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -7651,61 +7691,354 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          {/* Taste Highlight Add/Edit Modal */}
+          {highlightModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+              <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>✨</span>
+                    <span>{editingHighlightIdx !== null ? "تعديل ميزة سر المذاق" : "إضافة ميزة سر مذاق جديدة"}</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setHighlightModalOpen(false)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">الأيقونة التعبيرية (Emoji) 🌟:</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={highlightFormIcon}
+                        onChange={(e) => setHighlightFormIcon(e.target.value)}
+                        placeholder="🧈"
+                        className="w-16 text-center text-lg px-2 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
+                      />
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {["🧈", "🍫", "🌿", "🍓", "🍰", "🍯", "🌰", "✨"].map((em) => (
+                          <button
+                            key={em}
+                            type="button"
+                            onClick={() => setHighlightFormIcon(em)}
+                            className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-sm transition"
+                          >
+                            {em}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">عنوان الميزة الرئيسي *:</label>
+                    <input
+                      type="text"
+                      value={highlightFormTitle}
+                      onChange={(e) => setHighlightFormTitle(e.target.value)}
+                      placeholder="مثال: فستق حلبي مع مستكة"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">الوصف الفرعي التوضيحي:</label>
+                    <textarea
+                      rows={2}
+                      value={highlightFormDesc}
+                      onChange={(e) => setHighlightFormDesc(e.target.value)}
+                      placeholder="مثال: نكهة شرقية أصيلة تذوب بالفم بدون أي إضافات صناعية..."
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">الشريحة المرتبطة في الهيرو بوست 🖼️:</label>
+                    <select
+                      value={highlightFormSlideIndex}
+                      onChange={(e) => setHighlightFormSlideIndex(parseInt(e.target.value) || 0)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold text-xs"
+                    >
+                      {heroSlidesAdmin.map((_, hIdx) => (
+                        <option key={hIdx} value={hIdx}>
+                          شريحة الهيرو رقم #{hIdx + 1}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-slate-400 mt-1 block">عند ضغط العميل على هذه الجملة في الهيرو، سينتقل السلايدر مباشرة لهذه الصورة.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setHighlightModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!highlightFormTitle.trim()) {
+                        showToast("يرجى كتابة عنوان الميزة", "error");
+                        return;
+                      }
+                      const raw = editingSettings["hero_taste_highlights"] ?? (settings.find((s) => s.key === "hero_taste_highlights")?.value || "[]");
+                      let chips: Array<{ title: string; desc: string; slideIndex: number; icon: string }> = [];
+                      try { chips = JSON.parse(raw); } catch { chips = []; }
+                      const newItem = {
+                        title: highlightFormTitle.trim(),
+                        desc: highlightFormDesc.trim(),
+                        icon: highlightFormIcon || "✨",
+                        slideIndex: highlightFormSlideIndex,
+                      };
+                      let updated: typeof chips = [];
+                      if (editingHighlightIdx !== null && editingHighlightIdx >= 0 && editingHighlightIdx < chips.length) {
+                        updated = [...chips];
+                        updated[editingHighlightIdx] = newItem;
+                      } else {
+                        updated = [...chips, newItem];
+                      }
+                      setEditingSettings((prev) => ({ ...prev, hero_taste_highlights: JSON.stringify(updated) }));
+                      await updateStoreSetting("hero_taste_highlights", JSON.stringify(updated));
+                      broadcastSettingsChange();
+                      setHighlightModalOpen(false);
+                      showToast(editingHighlightIdx !== null ? "تم تحديث الميزة بنجاح! ✨" : "تمت إضافة الميزة بنجاح! ✨");
+                    }}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-black hover:brightness-105 transition shadow-sm"
+                  >
+                    حفظ الميزة 💾
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Dedicated WhatsApp & Social Media Share Manager (USER REQUEST: التحكم بعنوان ووصف وصورة اللينك عند الإرسال على واتساب ومواقع التواصل) */}
+          <div className="bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-6 sm:p-8 rounded-3xl border border-emerald-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-emerald-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-black text-lg text-slate-900 dark:text-white">إعدادات المشاركة على واتساب ومواقع التواصل (SEO & WhatsApp Link Preview)</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">التحكم الكامل بالعنوان، الوصف، وصورة المعاينة الفاخرة التي تظهر عند إرسال رابط المتجر لأي عميل عبر واتساب وفيسبوك</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Form Controls (7 cols) */}
+              <div className="lg:col-span-7 space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    عنوان المتجر عند المشاركة (Share Title) 🌐:
+                  </label>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
+                    النص العريض الذي يظهر أعلى رابط الموقع عند إرساله في شات واتساب
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="لولو كب كيك | Lolo Cupcakes - أرقى الحلويات والتورتات الفاخرة"
+                    value={editingSettings["social_share_title"] ?? (settings.find((s) => s.key === "social_share_title")?.value || "لولو كب كيك | Lolo Cupcakes - أرقى الحلويات والتورتات الفاخرة")}
+                    onChange={(e) => setEditingSettings({ ...editingSettings, social_share_title: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    الوصف المختصر (Share Description) 📝:
+                  </label>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
+                    النبذة التشويقية التي تقرأ أسفل العنوان في رسالة الواتساب
+                  </p>
+                  <textarea
+                    rows={3}
+                    placeholder="تذوق الفخامة مع أشهى الكب كيك، التورتات المصممة يدوياً، والحلويات الغربية والشرقية الطازجة بأفضل المكونات الطبيعية 100%. اطلب الآن مع توصيل سريع."
+                    value={editingSettings["social_share_description"] ?? (settings.find((s) => s.key === "social_share_description")?.value || "تذوق الفخامة مع أشهى الكب كيك، التورتات المصممة يدوياً، والحلويات الغربية والشرقية الطازجة بأفضل المكونات الطبيعية 100%. اطلب الآن مع توصيل سريع.")}
+                    onChange={(e) => setEditingSettings({ ...editingSettings, social_share_description: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block">
+                    صورة المعاينة الرسمية للمشاركة (Share Preview Image / OG Image) 🖼️:
+                  </label>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">
+                    الصورة الفاخرة التي يراها العميل بجانب الرابط فور لصقه في المحادثة
+                  </p>
+                  <label className="cursor-pointer flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800 font-bold transition shadow-xs">
+                    <Upload className="w-4 h-4" />
+                    <span>{uploadingSocialImage ? "جاري المعالجة والرفع..." : "اختر صورة المشاركة من جهازك 📁"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingSocialImage}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingSocialImage(true);
+                        try {
+                          const res = await compressAndGetUrl(file, 1200, 0.85);
+                          setEditingSettings((prev) => ({ ...prev, social_share_image_url: res }));
+                          showToast("تم تجهيز صورة المشاركة بنجاح! 📸 اضغط حفظ لاعتمادها");
+                        } catch (err: unknown) {
+                          const error = err as Error;
+                          showToast(error.message || "فشل تجهيز الصورة", "error");
+                        } finally {
+                          setUploadingSocialImage(false);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={savingSettingKey === "social_share"}
+                    onClick={async () => {
+                      setSavingSettingKey("social_share");
+                      try {
+                        await handleSaveSetting("social_share_title");
+                        await handleSaveSetting("social_share_description");
+                        if (editingSettings["social_share_image_url"]) {
+                          await handleSaveSetting("social_share_image_url");
+                        }
+                        showToast("تم حفظ وتحديث إعدادات المشاركة على واتساب بنجاح! ✨");
+                      } finally {
+                        setSavingSettingKey(null);
+                      }
+                    }}
+                    className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black rounded-xl hover:brightness-105 transition shadow-sm flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{savingSettingKey === "social_share" ? "جاري الحفظ..." : "حفظ إعدادات المشاركة والواتساب 💾"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* WhatsApp Live Bubble Mockup Preview (5 cols) */}
+              <div className="lg:col-span-5 bg-slate-900/90 dark:bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
+                <div className="flex items-center justify-between text-slate-400 text-xs border-b border-slate-800 pb-2">
+                  <span className="font-bold flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    معاينة حية على شات واتساب (WhatsApp Live Preview)
+                  </span>
+                  <span className="text-[10px]">الآن</span>
+                </div>
+
+                {/* WhatsApp Chat Bubble */}
+                <div className="bg-[#005c4b] text-white p-3 rounded-2xl rounded-tr-none shadow-md space-y-2 text-right max-w-sm ml-auto">
+                  {/* Link Preview Card inside Bubble */}
+                  <div className="bg-[#025144] rounded-xl overflow-hidden border border-[#056152] shadow-xs">
+                    {/* Image Thumbnail */}
+                    <div className="w-full h-36 relative bg-slate-800 overflow-hidden">
+                      <Image
+                        src={
+                          editingSettings["social_share_image_url"] ??
+                          (settings.find((s) => s.key === "social_share_image_url")?.value || currentLogo || "/og-image.png")
+                        }
+                        alt="معاينة المشاركة"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    {/* Text Details */}
+                    <div className="p-2.5 space-y-1">
+                      <h5 className="font-bold text-xs text-white line-clamp-1">
+                        {editingSettings["social_share_title"] ??
+                          (settings.find((s) => s.key === "social_share_title")?.value || "لولو كب كيك | Lolo Cupcakes - أرقى الحلويات")}
+                      </h5>
+                      <p className="text-[10px] text-slate-300 line-clamp-2 leading-tight">
+                        {editingSettings["social_share_description"] ??
+                          (settings.find((s) => s.key === "social_share_description")?.value || "تذوق الفخامة مع أشهى الكب كيك، التورتات المصممة يدوياً، والحلويات الغربية والشرقية الطازجة بأفضل المكونات الطبيعية 100%.")}
+                      </p>
+                      <span className="text-[9px] text-emerald-300 block font-mono">lolo-cupcakes.vercel.app</span>
+                    </div>
+                  </div>
+
+                  {/* URL Text & Timestamp */}
+                  <div className="flex items-center justify-between text-[11px] pt-1">
+                    <span className="text-emerald-200 underline font-mono text-[10px]">https://lolo-cupcakes.vercel.app</span>
+                    <span className="text-[10px] text-emerald-300/80 flex items-center gap-1">
+                      10:30 م <span className="text-sky-300">✓✓</span>
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-slate-400 text-center pt-1">
+                  💡 هكذا تظهر رسالتك تماماً للعملاء مع الصورة والعنوان والوصف فور لصق الرابط في أي محادثة واتساب.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Store Contacts & Facebook / n8n Integration Hub */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Box 1: Store Address, Phone & Working Hours */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2 border-b border-rose-100 dark:border-slate-800 pb-3">
                 <Store className="w-5 h-5 text-rose-500" />
-                <h4 className="font-black text-sm text-slate-900">بيانات الفرع، الهاتف، وساعات العمل</h4>
+                <h4 className="font-black text-sm text-slate-900 dark:text-white">بيانات الفرع، الهاتف، وساعات العمل</h4>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">اسم المتجر بالعربية:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">اسم المتجر بالعربية:</label>
                   <input
                     type="text"
                     placeholder="لولو كب كيك"
                     value={editingSettings["store_name_ar"] ?? (settings.find((s) => s.key === "store_name_ar")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_name_ar: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     disabled={savingSettingKey === "store_name_ar"}
                     onClick={() => handleSaveSetting("store_name_ar")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="mt-1 px-3 py-1 bg-slate-900 dark:bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_name_ar" ? "جاري الحفظ..." : "حفظ اسم المتجر"}
                   </button>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">عنوان التبويب في المتصفح (Browser Tab Title) 🌐:</label>
-                  <p className="text-[11px] text-slate-400 mb-1">الاسم والنص الذي يظهر في أعلى شريط التبويب بالمتصفح للمستخدمين</p>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">عنوان التبويب في المتصفح (Browser Tab Title) 🌐:</label>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">الاسم والنص الذي يظهر في أعلى شريط التبويب بالمتصفح للمستخدمين</p>
                   <input
                     type="text"
                     placeholder="لولو كب كيك | Lolo Cupcakes - تورتات وحلويات فاخرة"
                     value={editingSettings["store_tab_title"] ?? (settings.find((s) => s.key === "store_tab_title")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_tab_title: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     disabled={savingSettingKey === "store_tab_title"}
                     onClick={() => handleSaveSetting("store_tab_title")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="mt-1 px-3 py-1 bg-slate-900 dark:bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_tab_title" ? "جاري الحفظ..." : "حفظ عنوان التبويب"}
                   </button>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-slate-700 block">أيقونة التبويب بالمتصفح (Favicon) 🏷️:</label>
-                  <p className="text-[11px] text-slate-400 mb-1">اللوجو أو الأيقونة المصغرة بجانب اسم المتجر في التبويب (رفع مباشر من جهازك)</p>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block">أيقونة التبويب بالمتصفح (Favicon) 🏷️:</label>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">اللوجو أو الأيقونة المصغرة بجانب اسم المتجر في التبويب (رفع مباشر من جهازك)</p>
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 font-bold text-xs text-rose-700 transition shadow-sm">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-950 hover:bg-rose-50 dark:hover:bg-slate-800 border border-rose-300 dark:border-slate-700 font-bold text-xs text-rose-700 dark:text-rose-400 transition shadow-sm">
                       <Upload className="w-3.5 h-3.5 text-rose-500" />
                       <span>{uploadingFaviconImage ? "جاري الحفظ..." : "رفع أيقونة التبويب من جهازك 📁"}</span>
                       <input
@@ -7734,7 +8067,7 @@ export default function AdminDashboardPage() {
                       />
                     </label>
                     {(editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value) && (
-                      <div className="w-9 h-9 rounded-xl overflow-hidden relative border border-rose-300 shrink-0 bg-white p-0.5 shadow-sm">
+                      <div className="w-9 h-9 rounded-xl overflow-hidden relative border border-rose-300 dark:border-slate-700 shrink-0 bg-white dark:bg-slate-900 p-0.5 shadow-sm">
                         <Image
                           src={(editingSettings["store_favicon_url"] ?? settings.find((s) => s.key === "store_favicon_url")?.value) || ""}
                           alt="أيقونة التبويب"
@@ -7747,76 +8080,76 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">رقم هاتف المتجر:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">رقم هاتف المتجر:</label>
                   <input
                     type="text"
                     placeholder="01099887766"
                     value={editingSettings["store_phone"] ?? (settings.find((s) => s.key === "store_phone")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     disabled={savingSettingKey === "store_phone"}
                     onClick={() => handleSaveSetting("store_phone")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="mt-1 px-3 py-1 bg-slate-900 dark:bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_phone" ? "جاري الحفظ..." : "حفظ الهاتف"}
                   </button>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">عنوان الفرع الرئيسي بالتفصيل:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">عنوان الفرع الرئيسي بالتفصيل:</label>
                   <input
                     type="text"
                     placeholder="شارع 9 الرئيسي، المعادي، القاهرة"
                     value={editingSettings["store_address_ar"] ?? (settings.find((s) => s.key === "store_address_ar")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_address_ar: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     disabled={savingSettingKey === "store_address_ar"}
                     onClick={() => handleSaveSetting("store_address_ar")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="mt-1 px-3 py-1 bg-slate-900 dark:bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_address_ar" ? "جاري الحفظ..." : "حفظ العنوان"}
                   </button>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">مواعيد وساعات العمل:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">مواعيد وساعات العمل:</label>
                   <input
                     type="text"
                     placeholder="يومياً من 10:00 صباحاً حتى 11:00 مساءً"
                     value={editingSettings["store_working_hours"] ?? (settings.find((s) => s.key === "store_working_hours")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_working_hours: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     disabled={savingSettingKey === "store_working_hours"}
                     onClick={() => handleSaveSetting("store_working_hours")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="mt-1 px-3 py-1 bg-slate-900 dark:bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_working_hours" ? "جاري الحفظ..." : "حفظ ساعات العمل"}
                   </button>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">اسم فرع الاستلام (USER REQUEST: قابل للتغيير بدل المعادي الثابتة):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">اسم فرع الاستلام (USER REQUEST: قابل للتغيير بدل المعادي الثابتة):</label>
                   <input
                     type="text"
                     placeholder="فرع المعادي الرئيسي"
                     value={editingSettings["store_pickup_branch_name"] ?? (settings.find((s) => s.key === "store_pickup_branch_name")?.value || "فرع المعادي الرئيسي")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_pickup_branch_name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-rose-200"
+                    className="w-full px-3 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     disabled={savingSettingKey === "store_pickup_branch_name"}
                     onClick={() => handleSaveSetting("store_pickup_branch_name")}
-                    className="mt-1 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="mt-1 px-3 py-1 bg-slate-900 dark:bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {savingSettingKey === "store_pickup_branch_name" ? "جاري الحفظ..." : "حفظ اسم الفرع"}
                   </button>
@@ -7826,20 +8159,20 @@ export default function AdminDashboardPage() {
 
             {/* Box 2: Facebook Page & n8n Webhook Integration */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-sky-100 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-sky-100 pb-3">
+              <div className="flex items-center gap-2 border-b border-sky-100 dark:border-slate-800 pb-3">
                 <Share2 className="w-5 h-5 text-sky-600" />
-                <h4 className="font-black text-sm text-slate-900">أتمتة فيسبوك وربط Webhook عبر n8n</h4>
+                <h4 className="font-black text-sm text-slate-900 dark:text-white">أتمتة فيسبوك وربط Webhook عبر n8n</h4>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">رقم واتساب الشيف وإدارة المتجر (لاستقبال خطة اليوم):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">رقم واتساب الشيف وإدارة المتجر (لاستقبال خطة اليوم):</label>
                   <input
                     type="text"
                     placeholder="201099887766"
                     value={editingSettings["store_manager_whatsapp"] ?? (settings.find((s) => s.key === "store_manager_whatsapp")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, store_manager_whatsapp: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-sky-200"
+                    className="w-full px-3 py-2 rounded-xl border border-sky-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
@@ -7852,13 +8185,13 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">رابط صفحة فيسبوك الرسمية (Facebook Page URL):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">رابط صفحة فيسبوك الرسمية (Facebook Page URL):</label>
                   <input
                     type="url"
                     placeholder="https://facebook.com/lolocupcakes.official"
                     value={editingSettings["facebook_page_url"] ?? (settings.find((s) => s.key === "facebook_page_url")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, facebook_page_url: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-sky-200"
+                    className="w-full px-3 py-2 rounded-xl border border-sky-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
@@ -7871,13 +8204,13 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">رابط Webhook لـ n8n لنشر المنتجات تلقائياً:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">رابط Webhook لـ n8n لنشر المنتجات تلقائياً:</label>
                   <input
                     type="url"
                     placeholder="https://n8n.yourdomain.com/webhook/publish-product"
                     value={editingSettings["n8n_webhook_url"] ?? (settings.find((s) => s.key === "n8n_webhook_url")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, n8n_webhook_url: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-sky-200 font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-xl border border-sky-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono text-[11px]"
                   />
                   <button
                     type="button"
@@ -7890,13 +8223,13 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">معرف صفحة فيسبوك (Facebook Page ID):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">معرف صفحة فيسبوك (Facebook Page ID):</label>
                   <input
                     type="text"
                     placeholder="104928374928374"
                     value={editingSettings["facebook_page_id"] ?? (settings.find((s) => s.key === "facebook_page_id")?.value || "")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, facebook_page_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-sky-200 font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-xl border border-sky-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono text-[11px]"
                   />
                   <button
                     type="button"
@@ -7912,20 +8245,20 @@ export default function AdminDashboardPage() {
 
             {/* Box 3: Payment Accounts Customization (USER REQUEST: فودافون كاش وإنستاباي) */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-emerald-100 dark:border-slate-800 shadow-sm space-y-4 md:col-span-2">
-              <div className="flex items-center gap-2 border-b border-emerald-100 pb-3">
+              <div className="flex items-center gap-2 border-b border-emerald-100 dark:border-slate-800 pb-3">
                 <CreditCard className="w-5 h-5 text-emerald-600" />
-                <h4 className="font-black text-sm text-slate-900">بيانات تحويل المدفوعات (فودافون كاش وإنستاباي InstaPay)</h4>
+                <h4 className="font-black text-sm text-slate-900 dark:text-white">بيانات تحويل المدفوعات (فودافون كاش وإنستاباي InstaPay)</h4>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">رقم محفظة فودافون كاش لاستقبال المدفوعات:</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">رقم محفظة فودافون كاش لاستقبال المدفوعات:</label>
                   <input
                     type="text"
                     placeholder="01099887766"
                     value={editingSettings["payment_vodafone_cash_number"] ?? (settings.find((s) => s.key === "payment_vodafone_cash_number")?.value || "01099887766")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, payment_vodafone_cash_number: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-emerald-200 font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold"
                   />
                   <button
                     type="button"
@@ -7938,13 +8271,13 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">عنوان حساب إنستاباي (InstaPay Address / IPA):</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">عنوان حساب إنستاباي (InstaPay Address / IPA):</label>
                   <input
                     type="text"
                     placeholder="lolocupcakes@instapay"
                     value={editingSettings["payment_instapay_address"] ?? (settings.find((s) => s.key === "payment_instapay_address")?.value || "lolocupcakes@instapay")}
                     onChange={(e) => setEditingSettings({ ...editingSettings, payment_instapay_address: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-emerald-200 font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold"
                   />
                   <button
                     type="button"
@@ -7961,13 +8294,13 @@ export default function AdminDashboardPage() {
 
           {/* All Store Settings Raw List */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-rose-100 dark:border-slate-800 shadow-sm space-y-4">
-            <h4 className="font-black text-base text-slate-900 border-b border-rose-100 pb-3">جميع إعدادات وسياسات النظام</h4>
+            <h4 className="font-black text-base text-slate-900 dark:text-white border-b border-rose-100 dark:border-slate-800 pb-3">جميع إعدادات وسياسات النظام</h4>
             <div className="space-y-3">
               {settings.map((s) => (
-                <div key={s.key} className="space-y-1.5 border-b border-rose-50 pb-3 last:border-b-0">
+                <div key={s.key} className="space-y-1.5 border-b border-rose-50 dark:border-slate-800/80 pb-3 last:border-b-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-slate-800">{s.key}</span>
-                    <span className="text-[11px] text-slate-400">{s.description}</span>
+                    <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{s.key}</span>
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500">{s.description}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -7975,13 +8308,13 @@ export default function AdminDashboardPage() {
                       type="text"
                       value={editingSettings[s.key] ?? s.value}
                       onChange={(e) => setEditingSettings({ ...editingSettings, [s.key]: e.target.value })}
-                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
                     />
                     <button
                       type="button"
                       disabled={savingSettingKey === s.key}
                       onClick={() => handleSaveSetting(s.key)}
-                      className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition shadow flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-rose-600 text-white text-xs font-bold hover:bg-slate-800 dark:hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow flex items-center gap-1.5"
                     >
                       <Save className={`w-3.5 h-3.5 text-amber-400 ${savingSettingKey === s.key ? "animate-spin" : ""}`} />
                       <span>{savingSettingKey === s.key ? "جاري الحفظ..." : "حفظ"}</span>
